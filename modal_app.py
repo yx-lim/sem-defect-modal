@@ -109,7 +109,9 @@ def anomaly_scan(reference_spec: str = "all", run_id: str | None = None) -> dict
     r = P.anomaly_scan(ROOT, reference_spec=reference_spec, run_id=run_id)
     vol.commit()
     _audit(P, "anomaly_scan", started, t0,
-           {"reference_spec": reference_spec, "run_id": run_id}, gpu="L4",
+           {"reference_spec": reference_spec, "run_id": run_id,
+            "coreset_ratio": 0.01, "coreset_scope": "per_group",
+            "proj_dim": 128, "proj_seed": 0}, gpu="L4",
            metrics={"threshold": r["threshold"]})
     audit_flush.remote()
     return r

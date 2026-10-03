@@ -68,7 +68,9 @@ def cmd_anomaly(args):
     t0, started = time.time(), _now()
     r = anomaly_scan(ROOT, reference_spec=args.reference, run_id=args.run_id)
     _audit("anomaly_scan", started, t0,
-           {"reference_spec": args.reference, "run_id": r["run_id"]},
+           {"reference_spec": args.reference, "run_id": r["run_id"],
+            "coreset_ratio": 0.01, "coreset_scope": "per_group",
+            "proj_dim": 128, "proj_seed": 0},
            metrics={"threshold": r["threshold"]})
     audit_flush(ROOT)
     print(r["run_id"])

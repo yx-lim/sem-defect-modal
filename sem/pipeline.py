@@ -136,33 +136,42 @@ def _feats_for(root: Path, e: dict) -> np.ndarray:
     return f.astype(np.float32).reshape(-1, f.shape[-1])
 
 
-# Cap on pooled patch features per LOGO memory bank before coreset. Raw LOGO
-# banks are ~2.5M x 768 fp32 (~8 GB) which OOMs and makes greedy coreset
-# infeasible; we seeded-subsample each contributing group down to
-# cap/n_groups first (deterministic), then apply the spec'd 10% coreset.
-BANK_POOL_CAP = 50_000
+# Per-group PatchCore coreset: 1% of the group's patches selected by greedy
+# k-center in a 128-d Johnson-Lindenstrauss projection (lead design; PatchCore
+# paper reports ~1% coreset retains performance — unverified on SEM). Cached
+# under features/dinov2_vitb14_coreset/ so the LOGO bank is ~24k x 768.
+CORESET_MODEL = "dinov2_vitb14_coreset"
+CORESET_RATIO = 0.01
+CORESET_PROJ_DIM = 128
+CORESET_SEED = 0
 
 
-def _pooled_bank(group_feats: dict[str, np.ndarray], cap: int,
-                 seed: int = 0) -> np.ndarray:
-    groups = sorted(group_feats)
-    per = max(1, cap // len(groups))
-    parts = []
-    for i, g in enumerate(groups):
-        v = group_feats[g]
-        if len(v) > per:
-            rng = np.random.default_rng(seed + i)
-            idx = rng.choice(len(v), size=per, replace=False)
-            v = v[np.sort(idx)]
-        parts.append(v)
-    return np.concatenate(parts)
+def coreset_path(root: Path, image_id: str) -> Path:
+    return root / FEATURES / CORESET_MODEL / f"{_safe(image_id)}.npy"
+
+
+def group_coreset_cached(root: Path, e: dict,
+                         ratio: float = CORESET_RATIO) -> np.ndarray:
+    """Cached per-group coreset of original 768-d patch features."""
+    from .anomaly import group_coreset
+
+    out = coreset_path(root, e["image_id"])
+    if out.exists():
+        return np.load(out)
+    feats = _feats_for(root, e)
+    idx = group_coreset(feats, ratio=ratio, proj_dim=CORESET_PROJ_DIM,
+                        proj_seed=CORESET_SEED, start_seed=CORESET_SEED)
+    sel = feats[idx]
+    out.parent.mkdir(parents=True, exist_ok=True)
+    np.save(out, sel)
+    np.save(str(out).replace(".npy", "_idx.npy"), idx)
+    return sel
 
 
 def anomaly_scan(root: Path, reference_spec: str = "all",
-                 run_id: str | None = None, coreset_frac: float = 0.10,
-                 pct: float = 99.0, downsample: int = 4,
-                 pool_cap: int = BANK_POOL_CAP) -> dict:
-    from .anomaly import (calibrate_threshold, greedy_coreset, knn_scores,
+                 run_id: str | None = None, coreset_ratio: float = CORESET_RATIO,
+                 pct: float = 99.0, downsample: int = 4) -> dict:
+    from .anomaly import (calibrate_threshold, knn_scores, logo_bank,
                           stitch_heatmap)
     from .tiles import STRIDE, TILE, _padded
 
@@ -173,14 +182,12 @@ def anomaly_scan(root: Path, reference_spec: str = "all",
         ref_groups = {e["group_id"] for e in bse if e["batch"] == bname}
     else:
         ref_groups = {e["group_id"] for e in bse}
-    banks = {e["group_id"]: _feats_for(root, e) for e in bse
-             if e["group_id"] in ref_groups}
+    coresets = {e["group_id"]: group_coreset_cached(root, e, coreset_ratio)
+                for e in bse if e["group_id"] in ref_groups}
     results, all_scores = {}, []
     for e in bse:
         g = e["group_id"]
-        bank = _pooled_bank({gg: v for gg, v in banks.items() if gg != g},
-                            pool_cap)
-        bank = greedy_coreset(bank, frac=coreset_frac)
+        bank = logo_bank(coresets, g)
         s = knn_scores(bank, _feats_for(root, e))
         results[e["image_id"]] = (e, s)
         all_scores.append(s)

@@ -10,6 +10,38 @@ PATCH = 14
 GRID = TILE // PATCH  # 37
 
 
+def group_coreset(features: np.ndarray, ratio: float = 0.01,
+                  proj_dim: int = 128, proj_seed: int = 0,
+                  start_seed: int = 0, chunk: int = 8192) -> np.ndarray:
+    """Greedy k-center coreset of `ratio` points, selected in a
+    Johnson-Lindenstrauss random projection to `proj_dim` dims.
+    Same projection matrix for all callers (proj_seed); start index from
+    start_seed. Returns selected row INDICES into `features` — the caller
+    stores the original (unprojected) features.
+    Uses torch.cdist in chunks; peak memory ~O(n*proj_dim + chunk*proj_dim)."""
+    import torch
+
+    n, d = features.shape
+    m = max(1, int(round(n * ratio)))
+    rng = np.random.default_rng(proj_seed)
+    R = rng.standard_normal((d, proj_dim)) / np.sqrt(proj_dim)
+    P = torch.tensor((features @ R).astype(np.float32))
+    sel = [int(np.random.default_rng(start_seed).integers(n))]
+    with torch.no_grad():
+        dmin = torch.cdist(P, P[sel[0 : 1]]).squeeze(1)
+        for _ in range(1, m):
+            idx = int(torch.argmax(dmin))
+            sel.append(idx)
+            dmin = torch.minimum(dmin, torch.cdist(P, P[idx : idx + 1]).squeeze(1))
+    return np.array(sel)
+
+
+def logo_bank(coresets: dict[str, np.ndarray], exclude_group: str) -> np.ndarray:
+    """Concatenated coresets of every group except `exclude_group`."""
+    return np.concatenate([v for g, v in sorted(coresets.items())
+                           if g != exclude_group])
+
+
 def greedy_coreset(features: np.ndarray, frac: float = 0.10, seed: int = 0) -> np.ndarray:
     """Greedy k-center coreset on rows of features [N,D]."""
     rng = np.random.default_rng(seed)

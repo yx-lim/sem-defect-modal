@@ -55,6 +55,7 @@ Functions:
   anomaly_scan(reference_spec, run_id) (L4): PatchCore. For each BSE group g: memory bank = patch features of reference images excluding g
     (leave-one-group-out), greedy coreset 10%, faiss L2, score = 1-NN distance. Stitch to full-res heatmap (max over overlaps, bilinear).
     Calibrate: threshold = 99th percentile of LOGO patch scores of reference images. Outputs heatmap .npy (downsampled 4x) + png overlay,
+    CPU/local: coreset is 1% per group, cached; PatchCore paper reports ~1% coreset retains performance — unverified on SEM.
     per-image stats {p99, max, frac_above_thr}. Default reference_spec = "all" (every BSE group, LOGO); also allow "batch:Batch_1".
   propose(run_id) (CPU, .map over images): classical generators on BSE full-res + anomaly peaks:
     tophat_crack: gaussian sigma=1, black_tophat disk r=7, thr = 99.5th pct, components with skeleton length>=30px and major/minor>=4.
