@@ -1,0 +1,32 @@
+[project]
+name = "sem"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "torch",
+    "torchvision",
+    "tifffile",
+    "scikit-image",
+    "opencv-python-headless",
+    "numpy",
+    "scipy",
+    "pydantic>=2",
+    "faiss-cpu",
+    "anthropic",
+    "gradio",
+    "fastapi",
+    "segmentation-models-pytorch",
+    "pillow",
+    "pycocotools",
+    "imagecodecs",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "matplotlib", "modal"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["sem"]
