@@ -101,6 +101,8 @@ def build_app(
 
     with gr.Blocks(title="SEM defect review") as demo:
         with gr.Tab("Review"):
+            gr.Markdown('**Faster:** <a href="quick" target="_blank">open the '
+                        'one-click quick review grid</a> (all crops at once).')
             q = gr.Dataframe(headers=QUEUE_HEADERS, value=_queue(),
                              interactive=False)
             pid = gr.Textbox(label="proposal_id")
@@ -142,11 +144,16 @@ def build_app(
     return demo
 
 
-def mount_fastapi(demo, path: str = "/", allowed_paths: list[str] | None = None):
+def mount_fastapi(demo, path: str = "/", allowed_paths: list[str] | None = None,
+                  routers: list | None = None, root_path: str | None = None):
     """Mount a Blocks on a FastAPI app; allowed_paths passed to gradio so
-    local image files are servable."""
+    local image files are servable. Extra routers are included first so
+    their routes win over the gradio mount."""
     from fastapi import FastAPI
     import gradio as gr
 
     app = FastAPI()
-    return gr.mount_gradio_app(app, demo, path=path, allowed_paths=allowed_paths)
+    for r in routers or []:
+        app.include_router(r)
+    return gr.mount_gradio_app(app, demo, path=path, allowed_paths=allowed_paths,
+                               root_path=root_path)

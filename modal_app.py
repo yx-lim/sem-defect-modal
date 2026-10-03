@@ -323,6 +323,7 @@ def verify_chain() -> dict:
 def ui():
     import sem.pipeline as P
     from sem.contract import Label, Proposal
+    from sem.quick_review import quick_router
     from sem.ui import build_app, mount_fastapi
 
     prop_by_id = {p.proposal_id: p
@@ -345,9 +346,9 @@ def ui():
         x = ROOT / P.CROPS / f"{pid}_context.png"
         return (str(c) if c.exists() else None, str(x) if x.exists() else None)
 
-    def submit_review(pid, label, reviewer):
+    def submit_review(pid, label, reviewer, revise=False):
         vol.reload()
-        P.append_review(ROOT, pid, label, reviewer)
+        P.append_review(ROOT, pid, label, reviewer, revise=revise)
         vol.commit()
 
     def list_images():
@@ -367,4 +368,6 @@ def ui():
                      get_results, get_audit, verify_chain.remote)
     return mount_fastapi(demo, allowed_paths=[f"{VOL}/{P.CROPS}",
                                               f"{VOL}/{P.ANOMALY}",
-                                              f"{VOL}/{P.PRED}"])
+                                              f"{VOL}/{P.PRED}"],
+                         routers=[quick_router(list_pending, ROOT / P.CROPS,
+                                               submit_review)])

@@ -232,13 +232,14 @@ def anomaly_scan(root: Path, reference_spec: str = "all",
 PREVIEW_MAX_W = 1600
 
 
-def write_preview(src: Path, max_w: int = PREVIEW_MAX_W) -> Path:
+def write_preview(src: Path, max_w: int = PREVIEW_MAX_W,
+                  suffix: str = "_preview") -> Path:
     """Write a small JPEG copy `<stem>_preview.jpg` next to src for proxy/UI
     display. Downscale with INTER_AREA only when width > max_w; aspect kept.
     Idempotent: skip when preview exists and is newer than src."""
     import cv2
 
-    dst = src.with_name(f"{src.stem}_preview.jpg")
+    dst = src.with_name(f"{src.stem}{suffix}.jpg")
     if dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime:
         return dst
     img = cv2.imread(str(src))
@@ -394,15 +395,18 @@ def latest_pending(root: Path) -> list[Label]:
 
 
 def append_review(root: Path, proposal_id: str, label: str,
-                  reviewer: str) -> None:
+                  reviewer: str, revise: bool = False) -> None:
     """Append a reviewer label that supersedes the latest pending_review label
-    for proposal_id (labels.jsonl is append-only; created_at wins)."""
+    for proposal_id (labels.jsonl is append-only; created_at wins).
+    revise=True also supersedes an earlier human decision (one-click undo)."""
     from datetime import datetime, timezone
     import uuid as _uuid
 
     for vf in (root / LABELS).glob("*/labels.jsonl"):
         cur = latest_labels(root, vf.parent.name).get(proposal_id)
-        if cur is None or cur.status != "pending_review":
+        if cur is None:
+            continue
+        if cur.status != "pending_review" and not (revise and cur.source == "human"):
             continue
         new = cur.model_copy(update={
             "label_id": _uuid.uuid4().hex[:12],

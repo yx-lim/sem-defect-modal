@@ -149,9 +149,9 @@ def cmd_ui(args):
         x = ROOT / CROPS / f"{pid}_context.png"
         return (str(c) if c.exists() else None, str(x) if x.exists() else None)
 
-    def submit_review(pid, label, reviewer):
+    def submit_review(pid, label, reviewer, revise=False):
         from sem.pipeline import append_review
-        append_review(ROOT, pid, label, reviewer)
+        append_review(ROOT, pid, label, reviewer, revise=revise)
 
     def list_images():
         return [e["image_id"] for e in _entries(ROOT, BSE_ONLY)]
@@ -170,9 +170,17 @@ def cmd_ui(args):
 
     demo = build_app(list_pending, get_crop_ctx, submit_review, list_images,
                      get_results, get_audit, verify)
-    demo.launch(server_name="0.0.0.0", server_port=7860,
-                allowed_paths=[str(ROOT)],
-                root_path=os.environ.get("SEM_UI_ROOT_URL") or None)
+    import uvicorn
+    from sem.quick_review import prewarm_thumbs, quick_router
+    from sem.ui import mount_fastapi
+
+    n = prewarm_thumbs(ROOT / CROPS, [it["proposal_id"] for it in list_pending()])
+    print(f"quick review thumbnails ready: {n}")
+    app = mount_fastapi(demo, allowed_paths=[str(ROOT)],
+                        routers=[quick_router(list_pending, ROOT / CROPS,
+                                              submit_review)],
+                        root_path=os.environ.get("SEM_UI_ROOT_URL") or None)
+    uvicorn.run(app, host="0.0.0.0", port=7860)
 
 
 def cmd_train(args):
