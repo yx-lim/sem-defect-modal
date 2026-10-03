@@ -99,17 +99,21 @@ def cmd_propose(args):
 def cmd_label(args):
     import anthropic
 
-    from sem.label_agent import make_anthropic_client
+    from sem.label_agent import MAX_TOKENS, make_anthropic_client
     from sem.pipeline import label
 
     t0, started = time.time(), _now()
     client = make_anthropic_client(args.model)  # verifies model id
+    pids = (args.proposal_ids.split(",") if args.proposal_ids else None)
+    n = None if pids else args.n
     r = label(ROOT, run_id=args.run_id, label_version=args.label_version,
-              client=client, n=args.n, seed=args.seed, vlm_model=args.model,
+              client=client, proposal_ids=pids, n=n, seed=args.seed,
+              vlm_model=args.model,
               vlm_only_first_n=args.vlm_only_first_n)
     _audit("label_agent", started, t0,
            {"run_id": args.run_id, "label_version": args.label_version,
             "vlm_model": args.model, "n": args.n, "seed": args.seed,
+            "max_tokens": MAX_TOKENS,
             "vlm_only_first_n": args.vlm_only_first_n,
             "sampling": "sdk-default (temperature unsupported in anthropic 1.11.0)",
             "selection_cells": r["selection_cells"],
@@ -131,18 +135,14 @@ def cmd_ui(args):
                             for l in open(lf) if l.strip()]}
 
     def list_pending():
-        out = []
-        for lf in (ROOT / LABELS).glob("*/labels.jsonl"):
-            for line in open(lf):
-                l = Label.model_validate_json(line)
-                if l.status == "pending_review":
-                    p = prop_by_id.get(l.proposal_id)
-                    out.append({"proposal_id": l.proposal_id,
-                                "image_id": p.image_id if p else "",
-                                "source": p.source if p else "",
-                                "vlm_suggestion": l.vlm_suggestion.model_dump()
-                                if l.vlm_suggestion else None})
-        return out
+        from sem.pipeline import latest_pending
+        return [{"proposal_id": l.proposal_id,
+                 "image_id": (p.image_id if (p := prop_by_id.get(l.proposal_id))
+                             else ""),
+                 "source": p.source if p else "",
+                 "vlm_suggestion": l.vlm_suggestion.model_dump()
+                 if l.vlm_suggestion else None}
+                for l in latest_pending(ROOT)]
 
     def get_crop_ctx(pid):
         c = ROOT / CROPS / f"{pid}_crop.png"
@@ -150,22 +150,8 @@ def cmd_ui(args):
         return (str(c) if c.exists() else None, str(x) if x.exists() else None)
 
     def submit_review(pid, label, reviewer):
-        from datetime import datetime, timezone
-        for lf in (ROOT / LABELS).glob("*/labels.jsonl"):
-            new, changed = [], False
-            for line in open(lf):
-                l = Label.model_validate_json(line)
-                if l.proposal_id == pid and l.status == "pending_review":
-                    l.status = "rejected" if label == "rejected" else "accepted_human"
-                    if label != "rejected":
-                        l.label = label
-                    l.reviewer_id = reviewer
-                    l.source = "human"
-                    l.created_at = datetime.now(timezone.utc).isoformat()
-                    changed = True
-                new.append(l.model_dump_json())
-            if changed:
-                lf.write_text("\n".join(new) + "\n")
+        from sem.pipeline import append_review
+        append_review(ROOT, pid, label, reviewer)
 
     def list_images():
         return [e["image_id"] for e in _entries(ROOT, BSE_ONLY)]
@@ -282,6 +268,8 @@ def main():
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--model", default="claude-opus-5-5")
     p.add_argument("--vlm-only-first-n", type=int, default=5)
+    p.add_argument("--proposal-ids", default=None,
+                   help="comma-separated proposal_ids to (re)label; ignores --n")
     p.set_defaults(f=cmd_label)
 
     p = sub.add_parser("ui")

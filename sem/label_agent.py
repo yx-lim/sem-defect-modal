@@ -14,6 +14,7 @@ import numpy as np
 from .contract import ALLOWED_LABELS, ARTIFACT_CLASSES, Label, Proposal, VlmSuggestion
 
 PROMPT_VERSION = "v1"
+MAX_TOKENS = 2000
 
 SYSTEM_PROMPT = """You are assisting a materials scientist labelling FIB-SEM cross-section images of lithium-ion battery electrodes (backscattered-electron detector, grayscale). Bright regions are usually active-material particles, dark regions are pores/binder. Normal electrodes contain many pores between particles; ordinary porosity is NOT a defect. You classify one proposed region. Be conservative: if you cannot tell, answer "uncertain". Respond with a single JSON object and nothing else."""
 
@@ -77,11 +78,11 @@ def parse_vlm_json(text: str) -> VlmSuggestion | None:
     """Strict parse: single JSON object with required fields and allowed label."""
     try:
         text = text.strip()
-        # tolerate code fences around the object
+        # strip ```json / ``` fence lines around the object
         if text.startswith("```"):
-            text = text.strip("`")
-            if text.lower().startswith("json"):
-                text = text[4:]
+            lines = [l for l in text.splitlines()
+                     if not l.strip().startswith("```")]
+            text = "\n".join(lines).strip()
         d = json.loads(text)
         if not isinstance(d, dict):
             return None
@@ -102,8 +103,9 @@ def parse_vlm_json(text: str) -> VlmSuggestion | None:
 
 
 class VlmClient(Protocol):
-    def classify(self, system: str, user: str, crop_png: bytes, context_png: bytes) -> str:
-        """Return raw text of the model response."""
+    def classify(self, system: str, user: str, crop_png: bytes,
+                 context_png: bytes) -> tuple[str, str | None]:
+        """Return (raw text of text blocks, stop_reason)."""
         ...
 
 
@@ -158,14 +160,18 @@ def label_proposals(
         ctx_png = _png_bytes(render_context(img, tuple(p.bbox)))
         user = USER_PROMPT.replace("{source}", p.source)
         sug = None
+        truncated = False
         for _ in range(max_retries + 1):
-            raw = client.classify(SYSTEM_PROMPT, user, crop_png, ctx_png)
+            raw, stop = client.classify(SYSTEM_PROMPT, user, crop_png, ctx_png)
             sug = parse_vlm_json(raw)
+            truncated = stop == "max_tokens"
             if sug is not None:
                 break
         if sug is None:
             sug = VlmSuggestion(label="uncertain", confidence=0.0,
-                                is_artifact=False, rationale="unparseable VLM response")
+                                is_artifact=False,
+                                rationale=("truncated (max_tokens)" if truncated
+                                           else "unparseable VLM response"))
         label_val = "background" if sug.label == "normal" else sug.label
         if sug.label == "uncertain":
             status = "pending_review"
@@ -225,7 +231,7 @@ def make_anthropic_client(model_id: str, api_key: str | None = None) -> VlmClien
             # spec's temperature=0 we can set is the default sampling.
             msg = cli.messages.create(
                 model=model_id,
-                max_tokens=400,
+                max_tokens=MAX_TOKENS,
                 system=system,
                 messages=[
                     {
@@ -235,6 +241,7 @@ def make_anthropic_client(model_id: str, api_key: str | None = None) -> VlmClien
                     }
                 ],
             )
-            return "".join(b.text for b in msg.content if b.type == "text")
+            text = "".join(b.text for b in msg.content if b.type == "text")
+            return text, msg.stop_reason
 
     return _C()

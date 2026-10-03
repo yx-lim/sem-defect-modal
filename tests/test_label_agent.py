@@ -29,7 +29,9 @@ class FakeClient:
     def classify(self, system, user, crop_png, context_png):
         r = self.responses[min(self.calls, len(self.responses) - 1)]
         self.calls += 1
-        return r
+        if isinstance(r, tuple):
+            return r
+        return r, "end_turn"
 
 
 GOOD = '{"label": "void", "confidence": 0.9, "is_artifact": false, "rationale": "dark hole"}'
@@ -58,6 +60,33 @@ def test_parse_strict():
     assert parse_vlm_json('{"label": "defect", "confidence": 1, "is_artifact": false, "rationale": "x"}') is None
     assert parse_vlm_json('{"label": "void", "confidence": 2, "is_artifact": false, "rationale": "x"}') is None
     assert parse_vlm_json("garbage") is None
+
+
+def test_fence_stripping():
+    fenced = '```json\n' + GOOD + '\n```'
+    assert parse_vlm_json(fenced).label == "void"
+    assert parse_vlm_json('```\n' + GOOD) .label == "void"
+    client = FakeClient([fenced])
+    labels = label_proposals(mk_props(1), {"Batch_1/g/BSE": img()}, client,
+                             label_version="v1")
+    assert labels[0].label == "void"
+
+
+def test_max_tokens_retry_then_truncated():
+    client = FakeClient([('{"label": "void", "confidence": 0.9, "is_a',
+                          "max_tokens"),
+                         ('{"label": "void"', "max_tokens")])
+    labels = label_proposals(mk_props(1), {"Batch_1/g/BSE": img()}, client,
+                             label_version="v1", vlm_only_first_n=5)
+    assert labels[0].label == "uncertain"
+    assert labels[0].rationale == "truncated (max_tokens)"
+    assert client.calls == 2  # retried once
+
+    # truncated first, valid on retry -> parsed
+    client2 = FakeClient([('{"label": "void"', "max_tokens"), (GOOD, "end_turn")])
+    labels2 = label_proposals(mk_props(1), {"Batch_1/g/BSE": img()}, client2,
+                              label_version="v1", vlm_only_first_n=5)
+    assert labels2[0].label == "void"
 
 
 def test_normal_maps_background():

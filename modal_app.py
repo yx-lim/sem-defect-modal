@@ -163,7 +163,7 @@ def label_agent(proposal_ids: list[str] | None, label_version: str,
                 vlm_only_first_n: int = 5, n: int | None = None,
                 seed: int = 0) -> dict:
     import sem.pipeline as P
-    from sem.label_agent import make_anthropic_client
+    from sem.label_agent import MAX_TOKENS, make_anthropic_client
 
     t0, started = __import__("time").time(), P._now()
     vol.reload()
@@ -174,6 +174,7 @@ def label_agent(proposal_ids: list[str] | None, label_version: str,
     vol.commit()
     _audit(P, "label_agent", started, t0,
            {"label_version": label_version, "vlm_model": vlm_model,
+            "max_tokens": MAX_TOKENS,
             "vlm_only_first_n": vlm_only_first_n, "n": r["n_labels"],
             "sampling": "sdk-default (temperature unsupported in anthropic 1.11.0)",
             "selection_cells": r["selection_cells"],
@@ -308,18 +309,13 @@ def ui():
 
     def list_pending():
         vol.reload()
-        out = []
-        for lf in (ROOT / P.LABELS).glob("*/labels.jsonl"):
-            for line in open(lf):
-                l = Label.model_validate_json(line)
-                if l.status == "pending_review":
-                    p = prop_by_id.get(l.proposal_id)
-                    out.append({"proposal_id": l.proposal_id,
-                                "image_id": p.image_id if p else "",
-                                "source": p.source if p else "",
-                                "vlm_suggestion": l.vlm_suggestion.model_dump()
-                                if l.vlm_suggestion else None})
-        return out
+        return [{"proposal_id": l.proposal_id,
+                 "image_id": (p.image_id if (p := prop_by_id.get(l.proposal_id))
+                             else ""),
+                 "source": p.source if p else "",
+                 "vlm_suggestion": l.vlm_suggestion.model_dump()
+                 if l.vlm_suggestion else None}
+                for l in P.latest_pending(ROOT)]
 
     def get_crop_ctx(pid):
         c = ROOT / P.CROPS / f"{pid}_crop.png"
@@ -328,22 +324,7 @@ def ui():
 
     def submit_review(pid, label, reviewer):
         vol.reload()
-        from datetime import datetime, timezone
-        for lf in (ROOT / P.LABELS).glob("*/labels.jsonl"):
-            new, changed = [], False
-            for line in open(lf):
-                l = Label.model_validate_json(line)
-                if l.proposal_id == pid and l.status == "pending_review":
-                    l.status = "rejected" if label == "rejected" else "accepted_human"
-                    if label != "rejected":
-                        l.label = label
-                    l.reviewer_id = reviewer
-                    l.source = "human"
-                    l.created_at = datetime.now(timezone.utc).isoformat()
-                    changed = True
-                new.append(l.model_dump_json())
-            if changed:
-                lf.write_text("\n".join(new) + "\n")
+        P.append_review(ROOT, pid, label, reviewer)
         vol.commit()
 
     def list_images():

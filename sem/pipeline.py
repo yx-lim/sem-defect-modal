@@ -301,6 +301,57 @@ def select_subset(proposals: list[Proposal], n: int, seed: int = 0,
     return order
 
 
+def latest_labels(root: Path, label_version: str) -> dict:
+    """Latest Label per proposal_id (newest created_at wins). labels.jsonl is
+    append-only, so reviewer/relabeled entries supersede earlier ones."""
+    p = root / LABELS / label_version / "labels.jsonl"
+    out: dict[str, Label] = {}
+    if not p.exists():
+        return out
+    for line in open(p):
+        lab = Label.model_validate_json(line)
+        cur = out.get(lab.proposal_id)
+        if cur is None or lab.created_at >= cur.created_at:
+            out[lab.proposal_id] = lab
+    return out
+
+
+def latest_pending(root: Path) -> list[Label]:
+    """Latest label per proposal_id across all versions that is still
+    pending_review."""
+    out: dict[str, Label] = {}
+    for vf in (root / LABELS).glob("*/labels.jsonl"):
+        for pid, lab in latest_labels(root, vf.parent.name).items():
+            cur = out.get(pid)
+            if cur is None or lab.created_at >= cur.created_at:
+                out[pid] = lab
+    return [l for l in out.values() if l.status == "pending_review"]
+
+
+def append_review(root: Path, proposal_id: str, label: str,
+                  reviewer: str) -> None:
+    """Append a reviewer label that supersedes the latest pending_review label
+    for proposal_id (labels.jsonl is append-only; created_at wins)."""
+    from datetime import datetime, timezone
+    import uuid as _uuid
+
+    for vf in (root / LABELS).glob("*/labels.jsonl"):
+        cur = latest_labels(root, vf.parent.name).get(proposal_id)
+        if cur is None or cur.status != "pending_review":
+            continue
+        new = cur.model_copy(update={
+            "label_id": _uuid.uuid4().hex[:12],
+            "status": "rejected" if label == "rejected" else "accepted_human",
+            "label": cur.label if label == "rejected" else label,
+            "reviewer_id": reviewer,
+            "source": "human",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        with open(vf, "a") as f:
+            f.write(new.model_dump_json() + "\n")
+        return
+
+
 def label(root: Path, run_id: str, label_version: str, client,
           proposal_ids: list[str] | None = None, n: int | None = None,
           seed: int = 0, vlm_model: str | None = None,
@@ -308,6 +359,10 @@ def label(root: Path, run_id: str, label_version: str, client,
     """Label (a subset of) proposals; saves crops for the UI; appends labels."""
     from .label_agent import label_proposals, render_context, render_crop
 
+    # first-five budget is global across runs for this label_version
+    already_acc = sum(1 for l in latest_labels(root, label_version).values()
+                      if l.status == "accepted_vlm_only")
+    eff_first = max(0, vlm_only_first_n - already_acc)
     props = load_proposals(root, run_id)
     if proposal_ids:
         ids = set(proposal_ids)
@@ -320,7 +375,7 @@ def label(root: Path, run_id: str, label_version: str, client,
             images[p.image_id] = _read(root, _entry(root, p.image_id))
     labels = label_proposals(props, images, client, label_version,
                              model_id=vlm_model,
-                             vlm_only_first_n=vlm_only_first_n, seed=seed)
+                             vlm_only_first_n=eff_first, seed=seed)
     crop_dir = root / CROPS
     crop_dir.mkdir(parents=True, exist_ok=True)
     import cv2
@@ -354,9 +409,7 @@ def train_model(root: Path, label_version: str, arch: str = "dinov2_head",
     from .train import (build_mask, build_model, class_counts, group_split,
                         train, weights_sha256)
 
-    labels = [Label.model_validate_json(l) for l in
-              open(root / LABELS / label_version / "labels.jsonl")]
-    labels = [l for l in labels
+    labels = [l for l in latest_labels(root, label_version).values()
               if l.status in ("accepted_vlm_only", "accepted_human")]
     props = load_proposals(root)
     prop_by_id = {p.proposal_id: p for p in props}
