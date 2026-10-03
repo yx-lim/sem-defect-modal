@@ -189,7 +189,8 @@ def cmd_ui(args):
 
     demo = build_app(list_pending, get_crop_ctx, submit_review, list_images,
                      get_results, get_audit, verify)
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    demo.launch(server_name="0.0.0.0", server_port=7860,
+                allowed_paths=[str(ROOT)])
 
 
 def cmd_train(args):

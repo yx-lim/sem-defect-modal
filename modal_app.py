@@ -364,4 +364,4 @@ def ui():
 
     demo = build_app(list_pending, get_crop_ctx, submit_review, list_images,
                      get_results, get_audit, verify_chain.remote)
-    return mount_fastapi(demo)
+    return mount_fastapi(demo, allowed_paths=[VOL])
