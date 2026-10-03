@@ -348,8 +348,9 @@ def ui():
 
     def submit_review(pid, label, reviewer, revise=False):
         vol.reload()
-        P.append_review(ROOT, pid, label, reviewer, revise=revise)
+        res = P.append_review(ROOT, pid, label, reviewer, revise=revise)
         vol.commit()
+        return res
 
     def list_images():
         return [e["image_id"] for e in P.load_inventory(ROOT)["images"]

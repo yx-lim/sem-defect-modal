@@ -394,31 +394,48 @@ def latest_pending(root: Path) -> list[Label]:
     return [l for l in out.values() if l.status == "pending_review"]
 
 
+_REVIEW_LOCK = __import__("threading").Lock()
+
+
 def append_review(root: Path, proposal_id: str, label: str,
-                  reviewer: str, revise: bool = False) -> None:
+                  reviewer: str, revise: bool = False) -> dict:
     """Append a reviewer label that supersedes the latest pending_review label
     for proposal_id (labels.jsonl is append-only; created_at wins).
-    revise=True also supersedes an earlier human decision (one-click undo)."""
+    revise=True supersedes an earlier human decision by the SAME reviewer only.
+    Returns {"written": True, "label": final_label}, {"written": False,
+    "reason": "already_reviewed", ...} or {"written": False, "reason":
+    "not_found"}. The read-check-append is locked against concurrent requests
+    in this process."""
     from datetime import datetime, timezone
     import uuid as _uuid
 
-    for vf in (root / LABELS).glob("*/labels.jsonl"):
-        cur = latest_labels(root, vf.parent.name).get(proposal_id)
-        if cur is None:
-            continue
-        if cur.status != "pending_review" and not (revise and cur.source == "human"):
-            continue
-        new = cur.model_copy(update={
-            "label_id": _uuid.uuid4().hex[:12],
-            "status": "rejected" if label == "rejected" else "accepted_human",
-            "label": cur.label if label == "rejected" else label,
-            "reviewer_id": reviewer,
-            "source": "human",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
-        with open(vf, "a") as f:
-            f.write(new.model_dump_json() + "\n")
-        return
+    with _REVIEW_LOCK:
+        found = False
+        for vf in (root / LABELS).glob("*/labels.jsonl"):
+            cur = latest_labels(root, vf.parent.name).get(proposal_id)
+            if cur is None:
+                continue
+            found = True
+            if cur.status == "pending_review":
+                pass
+            elif not (revise and cur.source == "human"
+                      and cur.reviewer_id == reviewer):
+                return {"written": False, "reason": "already_reviewed",
+                        "reviewer_id": cur.reviewer_id, "label": cur.label,
+                        "status": cur.status}
+            new = cur.model_copy(update={
+                "label_id": _uuid.uuid4().hex[:12],
+                "status": "rejected" if label == "rejected" else "accepted_human",
+                "label": cur.label if label == "rejected" else label,
+                "reviewer_id": reviewer,
+                "source": "human",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+            with open(vf, "a") as f:
+                f.write(new.model_dump_json() + "\n")
+            return {"written": True, "label": new.label}
+        if not found:
+            return {"written": False, "reason": "not_found"}
 
 
 def label(root: Path, run_id: str, label_version: str, client,

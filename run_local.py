@@ -151,7 +151,7 @@ def cmd_ui(args):
 
     def submit_review(pid, label, reviewer, revise=False):
         from sem.pipeline import append_review
-        append_review(ROOT, pid, label, reviewer, revise=revise)
+        return append_review(ROOT, pid, label, reviewer, revise=revise)
 
     def list_images():
         return [e["image_id"] for e in _entries(ROOT, BSE_ONLY)]

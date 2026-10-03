@@ -144,23 +144,31 @@ def quick_router(list_pending, crop_dir: Path, submit_review,
             lab = to_label(b.choice)
         except ValueError as e:
             raise HTTPException(400, str(e))
-        submit_review(b.proposal_id, lab, rev, revise=b.revise)
+        res = submit_review(b.proposal_id, lab, rev, revise=b.revise)
+        if isinstance(res, dict) and res.get("written") is False:
+            return {"ok": False, "proposal_id": b.proposal_id,
+                    "reason": res.get("reason"),
+                    "reviewed_by": res.get("reviewer_id"),
+                    "label": res.get("label")}
         return {"ok": True, "proposal_id": b.proposal_id, "label": lab}
 
     @r.post("/quick/api/accept")
     def accept(b: Batch):
         rev = _reviewer(b.reviewer_id)
         pend = {it["proposal_id"]: it for it in grid_items(list_pending())}
-        done, skipped = {}, []
+        done, skipped, conflicts = {}, [], {}
         for pid in b.proposal_ids:
             it = pend.get(pid)
             if it is None or it["accept"] is None:
                 skipped.append(pid)
                 continue
             lab = to_label(it["accept"])
-            submit_review(pid, lab, rev)
+            res = submit_review(pid, lab, rev)
+            if isinstance(res, dict) and res.get("written") is False:
+                conflicts[pid] = res.get("reviewer_id")
+                continue
             done[pid] = lab
-        return {"accepted": done, "skipped": skipped}
+        return {"accepted": done, "skipped": skipped, "conflicts": conflicts}
 
     return r
 
@@ -198,6 +206,7 @@ main{padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minma
 .acts button.sel{background:var(--acc);border-color:var(--acc);color:#fff}
 .acts button.primary{font-size:13px;padding:5px 10px;flex-basis:100%}
 .saved{font-size:12px;font-weight:600;color:var(--ok)}
+.saved.taken{color:var(--warn)}
 #lb{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;gap:12px;z-index:10;padding:20px}
 #lb img{max-width:48vw;max-height:90vh;object-fit:contain;background:#111}
 #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1d2330;color:#fff;padding:8px 14px;border-radius:8px;display:none;z-index:20}
@@ -220,7 +229,7 @@ main{padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minma
 <script>
 const BASE = location.pathname.replace(/\/quick\/?$/, '');
 const SHORT = {crack_intra:'crack intra',crack_inter:'crack inter',other_anomaly:'other',edge_bloom:'edge bloom'};
-let items = [], choices = [], tiers = [], filter = 'all', done = {};
+let items = [], choices = [], tiers = [], filter = 'all', done = {}, taken = {};
 const $ = s => document.querySelector(s);
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const rev = $('#rev'); rev.value = localStorage.getItem('sem_reviewer') || '';
@@ -244,15 +253,15 @@ function chips(){
 }
 function stats(){
   const n = Object.keys(done).length, s = shown();
-  const left = items.filter(it=>!done[it.proposal_id]).length;
-  const acc = s.filter(it=>!done[it.proposal_id] && it.accept).length;
+  const left = items.filter(it=>!done[it.proposal_id] && !taken[it.proposal_id]).length;
+  const acc = s.filter(it=>!done[it.proposal_id] && !taken[it.proposal_id] && it.accept).length;
   $('#stats').textContent = `${left} pending · ${n} reviewed this session`;
   const b = $('#acceptAll'); b.textContent = `Accept Claude's label for all shown (${acc})`; b.disabled = !acc;
 }
 function card(it){
-  const pid = it.proposal_id, d = done[pid];
+  const pid = it.proposal_id, d = done[pid], tk = taken[pid];
   const el = document.createElement('div');
-  el.className = 'card' + (d ? ' done' + (d==='rejected'?' rej':'') : ''); el.id = 'c_'+pid;
+  el.className = 'card' + ((d || tk) ? ' done' + (d==='rejected'?' rej':'') : ''); el.id = 'c_'+pid;
   const conf = it.confidence==null ? '' : `conf ${(+it.confidence).toFixed(2)}`;
   const acc = it.accept;
   const sel = d ? (d==='background'?'normal':(d==='rejected'?'reject':d)) : null;
@@ -269,12 +278,14 @@ function card(it){
       ${it.risk_tier ? `<div class="why"><b>Risk:</b> ${esc(it.risk_mode)} — ${esc(it.risk_why)}</div>` : ''}
       <div class="why" title="${esc(it.rationale)}">${esc(it.rationale)}</div>
       ${d ? `<div class="saved">✓ saved as ${d} — click another label to change</div>` : ''}
+      ${tk ? `<div class="saved taken">already reviewed by ${esc(tk.by||'someone')} as ${esc(tk.label||'')}</div>` : ''}
       <div class="acts">
         <button class="primary" data-c="${acc||''}" ${acc && !d ? '' : 'disabled'}>${acc ? '✓ Accept: '+(SHORT[acc]||acc) : 'No suggestion — pick a label'}</button>
         ${choices.map(c=>`<button data-c="${c}" class="${c===sel?'sel':''}">${SHORT[c]||c}</button>`).join('')}
       </div>
     </div>`;
-  el.querySelectorAll('.acts button').forEach(b => b.onclick = () => decide(it, b.dataset.c));
+  if(tk) el.querySelectorAll('.acts button').forEach(b => b.disabled = true);
+  else el.querySelectorAll('.acts button').forEach(b => b.onclick = () => decide(it, b.dataset.c));
   el.querySelectorAll('.imgs img').forEach(i => i.onclick = () => lightbox(pid));
   return el;
 }
@@ -291,26 +302,55 @@ async function decide(it, choice){
   const revise = !!done[it.proposal_id];
   try{
     const res = await post('/quick/api/review',{proposal_id:it.proposal_id,choice,reviewer_id:r,revise});
+    if(res.ok === false){
+      taken[it.proposal_id] = {by: res.reviewed_by, label: res.label};
+      refreshCard(it);
+      toast('Already reviewed by '+(res.reviewed_by||'someone'), 3500);
+      return;
+    }
     done[it.proposal_id] = res.label; refreshCard(it);
   }catch(e){toast('Save failed: '+e.message, 3500);}
 }
 $('#acceptAll').onclick = async () => {
   const r = reviewer(); if(!r) return;
-  const ids = shown().filter(it=>!done[it.proposal_id] && it.accept).map(it=>it.proposal_id);
+  const ids = shown().filter(it=>!done[it.proposal_id] && !taken[it.proposal_id] && it.accept).map(it=>it.proposal_id);
   if(!ids.length || !confirm(`Accept Claude's suggested label for ${ids.length} crops?`)) return;
   try{
     const res = await post('/quick/api/accept',{proposal_ids:ids,reviewer_id:r});
-    Object.assign(done, res.accepted); render();
-    toast(`Accepted ${Object.keys(res.accepted).length}` + (res.skipped.length?`, skipped ${res.skipped.length}`:''));
+    Object.assign(done, res.accepted);
+    Object.keys(res.conflicts||{}).forEach(pid => {taken[pid] = {by: res.conflicts[pid], label: null};});
+    render();
+    const nc = Object.keys(res.conflicts||{}).length;
+    toast(`Accepted ${Object.keys(res.accepted).length}` + (res.skipped.length?`, skipped ${res.skipped.length}`:'') + (nc?`, ${nc} already reviewed by others`:''));
   }catch(e){toast('Save failed: '+e.message, 3500);}
 };
-$('#clear').onclick = () => {items = items.filter(it=>!done[it.proposal_id]); done = {}; render();};
+$('#clear').onclick = () => {items = items.filter(it=>!done[it.proposal_id] && !taken[it.proposal_id]); done = {}; taken = {}; render();};
 function lightbox(pid){
   const lb = $('#lb');
   lb.innerHTML = `<img src="${BASE}/quick/full/${pid}/crop.png"><img src="${BASE}/quick/full/${pid}/context.png">`;
   lb.style.display = 'flex'; lb.onclick = () => lb.style.display = 'none';
 }
 document.addEventListener('keydown', e => {if(e.key==='Escape') $('#lb').style.display='none';});
+async function refresh(){
+  if(document.hidden || $('#lb').style.display==='flex') return;
+  try{
+    const r = await fetch(BASE+'/quick/api/items'); const d = await r.json();
+    const fresh = d.items || [];
+    const keep = {};
+    items.forEach(it => { if(done[it.proposal_id] || taken[it.proposal_id]) keep[it.proposal_id]=it; });
+    const seen = {};
+    const next = [];
+    items.forEach(it => {
+      const f = fresh.find(x => x.proposal_id===it.proposal_id);
+      if(f){ next.push(f); seen[f.proposal_id]=1; }
+      else if(keep[it.proposal_id]){ next.push(it); }
+    });
+    fresh.forEach(f => { if(!seen[f.proposal_id] && !items.find(x=>x.proposal_id===f.proposal_id)) next.push(f); });
+    const changed = next.length!==items.length || next.some((it,i)=>it.proposal_id!==items[i].proposal_id);
+    if(changed){ items = next; render(); }
+  }catch(e){/* silent */}
+}
+setInterval(refresh, 30000);
 (async () => {
   try{
     const r = await fetch(BASE+'/quick/api/items'); const d = await r.json();

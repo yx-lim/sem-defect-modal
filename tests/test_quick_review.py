@@ -107,6 +107,65 @@ def test_append_review_revise(tmp_path):
     assert len(lines) == 3
 
 
+def _labels_v1(tmp_path):
+    d = tmp_path / "labels" / "v1"
+    d.mkdir(parents=True)
+    lab = Label(label_id="l1", proposal_id="p1", label="void", confidence=0.5,
+                rationale="r", is_artifact=False, source="vlm",
+                prompt_version="v1",
+                vlm_suggestion=VlmSuggestion(**_sug("void", 0.5)),
+                status="pending_review",
+                created_at="2026-01-01T00:00:00+00:00", label_version="v1")
+    (d / "labels.jsonl").write_text(lab.model_dump_json() + "\n")
+
+
+def test_append_review_conflict_and_own_revise(tmp_path):
+    _labels_v1(tmp_path)
+    r = append_review(tmp_path, "p1", "void", "A")
+    assert r["written"] is True
+    r = append_review(tmp_path, "p1", "crack_inter", "B")
+    assert r["written"] is False and r["reason"] == "already_reviewed"
+    assert r["reviewer_id"] == "A" and r["label"] == "void"
+    assert latest_labels(tmp_path, "v1")["p1"].reviewer_id == "A"
+    r = append_review(tmp_path, "p1", "crack_inter", "B", revise=True)
+    assert r["written"] is False  # B can't revise A's decision
+    r = append_review(tmp_path, "p1", "crack_inter", "A", revise=True)
+    assert r["written"] is True
+    assert latest_labels(tmp_path, "v1")["p1"].label == "crack_inter"
+    assert append_review(tmp_path, "nope", "void", "A")["reason"] == "not_found"
+
+
+def _client_conflict(tmp_path):
+    pending = [{"proposal_id": "aa", "image_id": "B/1", "source": "random",
+                "vlm_suggestion": _sug("background", 0.9)},
+               {"proposal_id": "bb", "image_id": "B/1", "source": "tophat_crack",
+                "vlm_suggestion": _sug("crack_inter", 0.6)}]
+
+    def submit(pid, label, reviewer, revise=False):
+        if pid == "aa":
+            return {"written": False, "reason": "already_reviewed",
+                    "reviewer_id": "alice", "label": "void"}
+        return {"written": True, "label": label}
+
+    app = FastAPI()
+    app.include_router(quick_router(lambda: pending, tmp_path, submit))
+    return TestClient(app)
+
+
+def test_router_conflict_responses(tmp_path):
+    c = _client_conflict(tmp_path)
+    r = c.post("/quick/api/review", json={
+        "proposal_id": "aa", "choice": "void", "reviewer_id": "bob"})
+    assert r.status_code == 200
+    j = r.json()
+    assert j["ok"] is False and j["reviewed_by"] == "alice"
+    assert j["reason"] == "already_reviewed"
+    r = c.post("/quick/api/accept", json={
+        "proposal_ids": ["aa", "bb"], "reviewer_id": "bob"}).json()
+    assert r["conflicts"] == {"aa": "alice"}
+    assert r["accepted"] == {"bb": "crack_inter"}
+
+
 def test_risk_tiers_sort_uncertain_critical_first(tmp_path):
     import json
     rp = tmp_path / "risk_tiers.json"

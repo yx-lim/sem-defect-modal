@@ -91,13 +91,18 @@ def build_app(
             return ("skipped", _queue(), pid, *(_load(pid)))
         lab = ("rejected" if choice == "reject"
                else ("background" if choice == "normal" else choice))
-        submit_review(pid, lab, reviewer.strip())
+        res = submit_review(pid, lab, reviewer.strip())
         rows = _queue()
         nxt = rows[0][0] if rows else None
         n = len(rows)
         crop, ctx, info, radio = _load(nxt)
-        return (f"saved {pid} as {lab} ({n} remaining)", rows, nxt, crop, ctx,
-                info, radio)
+        if (isinstance(res, dict) and res.get("written") is False
+                and res.get("reason") == "already_reviewed"):
+            msg = (f"{pid} already reviewed by {res.get('reviewer_id')} "
+                   f"as {res.get('label')}")
+        else:
+            msg = f"saved {pid} as {lab} ({n} remaining)"
+        return (msg, rows, nxt, crop, ctx, info, radio)
 
     with gr.Blocks(title="SEM defect review") as demo:
         with gr.Tab("Review"):
