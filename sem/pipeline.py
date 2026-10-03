@@ -207,11 +207,57 @@ def anomaly_scan(root: Path, reference_spec: str = "all",
         import cv2
 
         cv2.imwrite(str(outdir / f"{safe}_heat.png"), png)
+        write_preview(outdir / f"{safe}_heat.png")
         stats[iid] = {"p99": float(np.percentile(s, 99)), "max": float(s.max()),
                       "frac_above_thr": float((heat > thr).mean())}
     (outdir / "threshold.json").write_text(json.dumps({"threshold": thr}))
     (outdir / "stats.json").write_text(json.dumps(stats))
     return {"run_id": run_id, "threshold": thr, "stats": stats}
+
+
+PREVIEW_MAX_W = 1600
+
+
+def write_preview(src: Path, max_w: int = PREVIEW_MAX_W) -> Path:
+    """Write a small JPEG copy `<stem>_preview.jpg` next to src for proxy/UI
+    display. Downscale with INTER_AREA only when width > max_w; aspect kept.
+    Idempotent: skip when preview exists and is newer than src."""
+    import cv2
+
+    dst = src.with_name(f"{src.stem}_preview.jpg")
+    if dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime:
+        return dst
+    img = cv2.imread(str(src))
+    if img is None:
+        raise RuntimeError(f"cannot read {src}")
+    h, w = img.shape[:2]
+    if w > max_w:
+        img = cv2.resize(img, (max_w, max(1, round(h * max_w / w))),
+                         interpolation=cv2.INTER_AREA)
+    cv2.imwrite(str(dst), img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    return dst
+
+
+def results_for(root: Path, image_id: str) -> tuple:
+    """(heat_preview, overlay_preview, kpis, status_markdown) for the Results
+    tab; lazily backfills downscaled previews of existing PNGs."""
+    safe = _safe(image_id)
+    heat = next((root / ANOMALY).glob(f"*/{safe}_heat.png"), None)
+    ovl = next((root / PRED).glob(f"*/{safe}_overlay.png"), None)
+    kpis: dict = {}
+    for kf in (root / "kpi").glob("*.json") if (root / "kpi").exists() else []:
+        kpis = json.loads(kf.read_text())
+    missing = []
+    if heat is None:
+        missing.append("No anomaly heatmap for this image.")
+    if ovl is None:
+        missing.append("No predicted mask yet — run train + detect after label review.")
+    if not kpis:
+        missing.append("No KPIs yet — run kpi after detect.")
+    status = "All results available." if not missing else "\n".join(missing)
+    return (str(write_preview(heat)) if heat else None,
+            str(write_preview(ovl)) if ovl else None,
+            kpis, status)
 
 
 def _heat_overlay(img: np.ndarray, heat: np.ndarray, ds: int) -> np.ndarray:

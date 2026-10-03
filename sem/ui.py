@@ -125,8 +125,10 @@ def build_app(
                 heat = gr.Image(label="anomaly heatmap")
                 ovl = gr.Image(label="predicted mask overlay")
             kpi_out = gr.JSON(label="KPIs")
+            status = gr.Markdown()
             gr.Button("Show").click(
-                lambda i: get_results(i), inputs=iid, outputs=[heat, ovl, kpi_out])
+                lambda i: get_results(i), inputs=iid,
+                outputs=[heat, ovl, kpi_out, status])
         with gr.Tab("Audit"):
             tbl = gr.Dataframe(headers=["run_id", "function", "ended_at", "record_hash"],
                                value=[[r.get("run_id"), r.get("function"),

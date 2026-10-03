@@ -157,13 +157,8 @@ def cmd_ui(args):
         return [e["image_id"] for e in _entries(ROOT, BSE_ONLY)]
 
     def get_results(image_id):
-        safe = _safe(image_id)
-        heat = next((ROOT / ANOMALY).glob(f"*/{safe}_heat.png"), None)
-        ovl = next((ROOT / PRED).glob(f"*/{safe}_overlay.png"), None)
-        kpis = {}
-        for kf in (ROOT / "kpi").glob("*.json") if (ROOT / "kpi").exists() else []:
-            kpis = json.loads(kf.read_text())
-        return (str(heat) if heat else None, str(ovl) if ovl else None, kpis)
+        from sem.pipeline import results_for
+        return results_for(ROOT, image_id)
 
     def get_audit():
         p = ROOT / "audit" / "chain.jsonl"

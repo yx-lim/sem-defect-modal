@@ -333,10 +333,7 @@ def ui():
 
     def get_results(image_id):
         vol.reload()
-        safe = image_id.replace("/", "_")
-        heat = next((ROOT / P.ANOMALY).glob(f"*/{safe}_heat.png"), None)
-        ovl = next((ROOT / P.PRED).glob(f"*/{safe}_overlay.png"), None)
-        return (str(heat) if heat else None, str(ovl) if ovl else None, {})
+        return P.results_for(ROOT, image_id)
 
     def get_audit():
         import json as _j
