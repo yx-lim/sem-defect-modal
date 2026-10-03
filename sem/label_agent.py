@@ -195,11 +195,19 @@ def label_proposals(
     return labels
 
 
+def verify_model_id(client, model_id: str) -> None:
+    """Raise if model_id is absent from the Anthropic models list API."""
+    ids = {m.id for m in client.models.list()}
+    if model_id not in ids:
+        raise ValueError(f"model id {model_id!r} not in Anthropic models list: {sorted(ids)}")
+
+
 def make_anthropic_client(model_id: str, api_key: str | None = None) -> VlmClient:
     """Real Anthropic-backed client (used inside Modal). Lazy import."""
     import anthropic, base64
 
     cli = anthropic.Anthropic(api_key=api_key)
+    verify_model_id(cli, model_id)
 
     class _C:
         def classify(self, system: str, user: str, crop_png: bytes, context_png: bytes) -> str:

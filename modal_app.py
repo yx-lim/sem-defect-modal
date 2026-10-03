@@ -37,7 +37,10 @@ def _now() -> str:
 def _audit(function: str, started_at: str, t0: float, config: dict,
            inputs=None, outputs=None, gpu=None, metrics=None, verdict=None,
            label_version=None, model=None):
-    from sem.audit import append_record, config_sha256, git_state
+    """Write the record to /vol/audit/pending/ — never touches chain.jsonl.
+    Mapped containers run concurrently; the chain is written only by
+    audit_flush (max_containers=1)."""
+    from sem.audit import config_sha256, git_state, write_pending
     from sem.contract import AuditRecord, FileHash, ModalInfo, ModelRef
 
     commit, dirty = git_state()
@@ -68,8 +71,21 @@ def _audit(function: str, started_at: str, t0: float, config: dict,
         verdict=verdict,
         limitations=[],
     )
-    append_record(f"{VOL}/audit/chain.jsonl", rec)
+    write_pending(f"{VOL}/audit/pending", rec)
     return rec
+
+
+@app.function(image=image, volumes={VOL: vol}, timeout=600, max_containers=1)
+def audit_flush() -> dict:
+    """Single writer: append pending records to chain.jsonl in
+    (started_at, run_id) order, move them to flushed/."""
+    from sem.audit import flush_pending
+
+    vol.reload()
+    n = flush_pending(f"{VOL}/audit/pending", f"{VOL}/audit/chain.jsonl",
+                      f"{VOL}/audit/flushed")
+    vol.commit()
+    return {"flushed": n}
 
 
 # ---------------- upload (local entrypoint) ----------------
@@ -123,8 +139,12 @@ class Embedder:
         np.save(out, feats.astype(np.float16))
         np.save(out.replace(".npy", "_coords.npy"), np.array(coords))
         vol.commit()
+        from sem.features import DINOV2_REVISION, hub_checkpoint_sha256
         _audit("embed", started, t0, {"image_id": image_id, "model": "dinov2_vitb14"},
-               gpu="L4", model={"name": "dinov2_vitb14", "hub_id": "facebookresearch/dinov2"})
+               gpu="L4", model={"name": "dinov2_vitb14",
+                                "hub_id": "facebookresearch/dinov2",
+                                "revision": DINOV2_REVISION,
+                                "weights_sha256": hub_checkpoint_sha256()})
         return {"image_id": image_id, "n_tiles": len(coords), "path": out}
 
 
@@ -193,6 +213,7 @@ def anomaly_scan(reference_spec: str = "all", run_id: str | None = None) -> dict
     vol.commit()
     _audit("anomaly_scan", started, t0, {"reference_spec": reference_spec, "run_id": run_id},
            gpu="L4", metrics={"threshold": thr})
+    audit_flush.remote()
     return {"run_id": run_id, "threshold": thr, "stats": stats}
 
 
@@ -236,6 +257,7 @@ def propose(run_id: str | None = None, anomaly_run_id: str | None = None) -> dic
     ids = [e["image_id"] for e in inv["images"] if e["detector"] == "BSE"]
     results = list(propose_one.map(ids, kwargs={"run_id": run_id,
                                                 "anomaly_run_id": anomaly_run_id}))
+    audit_flush.remote()
     return {"run_id": run_id, "results": results}
 
 
@@ -244,7 +266,7 @@ def propose(run_id: str | None = None, anomaly_run_id: str | None = None) -> dic
 @app.function(image=image, volumes={VOL: vol}, secrets=[anthropic_secret],
               timeout=3600, retries=1, max_containers=8)
 def label_agent(proposal_ids: list[str] | None, label_version: str,
-                run_id: str | None = None, vlm_model: str = "claude-sonnet-4-5",
+                run_id: str | None = None, vlm_model: str = "claude-opus-5-5",
                 vlm_only_first_n: int = 5) -> dict:
     from sem.contract import Proposal
     from sem.io import read_image_gray
@@ -281,6 +303,7 @@ def label_agent(proposal_ids: list[str] | None, label_version: str,
            {"label_version": label_version, "vlm_model": vlm_model,
             "vlm_only_first_n": vlm_only_first_n, "n": len(labels)},
            label_version=label_version)
+    audit_flush.remote()
     return {"n_labels": len(labels)}
 
 
@@ -343,8 +366,19 @@ def train_supervised(label_version: str, arch: str = "dinov2_head", seed: int = 
     cfg = {"arch": arch, "label_version": label_version, "seed": seed}
     (outdir / "config.json").write_text(json.dumps(cfg))
     vol.commit()
+    model_ref = {"name": arch, "weights_sha256": weights_sha256(model)}
+    if arch == "micronet_unet":
+        from sem.train import micronet_weights_sha256
+        model_ref["weights_sha256"] = micronet_weights_sha256()
+    elif arch == "dinov2_head":
+        from sem.features import DINOV2_REVISION, hub_checkpoint_sha256
+        model_ref.update({"hub_id": "facebookresearch/dinov2",
+                          "revision": DINOV2_REVISION,
+                          "weights_sha256": hub_checkpoint_sha256()
+                          or model_ref["weights_sha256"]})
     _audit("train_supervised", started, t0, cfg, gpu="L4", metrics=metrics,
-           model={"name": arch, "weights_sha256": weights_sha256(model)})
+           model=model_ref)
+    audit_flush.remote()
     return {"model_version": mv, "metrics": metrics}
 
 
@@ -432,6 +466,7 @@ def kpi_verdict(image_ids: list[str], reference_spec: str = "all",
            {"image_ids": image_ids, "reference_spec": reference_spec,
             "model_version": model_version, "anomaly_run_id": anomaly_run_id},
            verdict=v.model_dump())
+    audit_flush.remote()
     return v.model_dump()
 
 
@@ -463,6 +498,7 @@ def freeze(model_version: str, anomaly_run_id: str) -> dict:
     vol.commit()
     _audit("freeze", started, t0, {"model_version": model_version,
                                    "anomaly_run_id": anomaly_run_id})
+    audit_flush.remote()
     return freeze_obj
 
 
@@ -485,6 +521,7 @@ def evaluate_holdout(image_ids: list[str], model_version: str,
     out.mkdir(parents=True, exist_ok=True)
     (out / "results.json").write_text(json.dumps(results))
     vol.commit()
+    audit_flush.remote()
     return {"eval_id": tag, "results": results}
 
 
@@ -492,6 +529,7 @@ def evaluate_holdout(image_ids: list[str], model_version: str,
 def verify_chain() -> dict:
     from sem.audit import verify_chain as _v
 
+    audit_flush.remote()
     vol.reload()
     return _v(f"{VOL}/audit/chain.jsonl")
 
