@@ -63,6 +63,42 @@ def append_record(path: str | Path, rec: AuditRecord) -> AuditRecord:
     return rec
 
 
+def write_pending(pending_dir: str | Path, rec: AuditRecord) -> Path:
+    """Write a record (no prev_hash/record_hash) for a later single-writer flush.
+    Used by mapped functions: concurrent writers to one Volume file lose data."""
+    pending_dir = Path(pending_dir)
+    pending_dir.mkdir(parents=True, exist_ok=True)
+    rec.prev_hash = None
+    rec.record_hash = None
+    p = pending_dir / f"{rec.started_at}_{rec.run_id}.json"
+    p.write_text(rec.model_dump_json())
+    return p
+
+
+def flush_pending(
+    pending_dir: str | Path,
+    chain_path: str | Path,
+    flushed_dir: str | Path | None = None,
+) -> int:
+    """Append pending records to the chain in (started_at, run_id) order and
+    move them to flushed_dir. Returns number flushed. Single-writer only."""
+    pending_dir = Path(pending_dir)
+    flushed_dir = Path(flushed_dir) if flushed_dir else None
+    files = sorted(pending_dir.glob("*.json"))
+    recs = [AuditRecord.model_validate_json(p.read_text()) for p in files]
+    recs.sort(key=lambda r: (r.started_at, r.run_id))
+    for rec in recs:
+        append_record(chain_path, rec)
+    if flushed_dir:
+        flushed_dir.mkdir(parents=True, exist_ok=True)
+        for p in files:
+            p.rename(flushed_dir / p.name)
+    else:
+        for p in files:
+            p.unlink()
+    return len(recs)
+
+
 def verify_chain(path: str | Path) -> dict:
     """Recompute every record_hash and prev_hash link.
     Returns {ok: bool, broken_index: int|None, n: int}."""
