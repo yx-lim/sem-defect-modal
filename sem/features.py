@@ -70,8 +70,10 @@ def embed_tiles(model, tiles_u8: np.ndarray, device: str = "cpu",
     return np.concatenate(outs, axis=0)
 
 
-def embed_image(model, img_u8: np.ndarray, device: str = "cpu", fp16: bool = False):
+def embed_image(model, img_u8: np.ndarray, device: str = "cpu", fp16: bool = False,
+                batch_size: int = 8):
     """Full image -> (patch_features [Ntiles,1369,D], coords, padded_hw)."""
     tiles, coords, phw = extract_tiles(img_u8)
-    feats = embed_tiles(model, tiles, device=device, fp16=fp16)
+    feats = embed_tiles(model, tiles, device=device, fp16=fp16,
+                        batch_size=batch_size)
     return feats, coords, phw
