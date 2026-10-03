@@ -13,7 +13,7 @@ def _sug(label, conf):
             "rationale": "r"}
 
 
-def _client(tmp_path):
+def _client(tmp_path, risk_path=None):
     pending = [
         {"proposal_id": "aa", "image_id": "B/1", "source": "random",
          "vlm_suggestion": _sug("background", 0.9)},
@@ -21,6 +21,8 @@ def _client(tmp_path):
          "vlm_suggestion": _sug("crack_inter", 0.6)},
         {"proposal_id": "cc", "image_id": "B/2", "source": "anomaly_peak",
          "vlm_suggestion": _sug("uncertain", 0.4)},
+        {"proposal_id": "dd", "image_id": "B/2", "source": "anomaly_peak",
+         "vlm_suggestion": _sug("uncertain", 0.6)},
     ]
     calls = []
 
@@ -30,7 +32,8 @@ def _client(tmp_path):
     cv2.imwrite(str(tmp_path / "aa_crop.png"),
                 np.zeros((330, 640, 3), np.uint8))
     app = FastAPI()
-    app.include_router(quick_router(lambda: pending, tmp_path, submit))
+    app.include_router(quick_router(lambda: pending, tmp_path, submit,
+                                    risk_path))
     return TestClient(app), calls
 
 
@@ -50,8 +53,10 @@ def test_items_page_and_thumb(tmp_path):
     c, _ = _client(tmp_path)
     assert "SEM quick review" in c.get("/quick").text
     d = c.get("/quick/api/items").json()
-    assert [i["proposal_id"] for i in d["items"]] == ["cc", "bb", "aa"]
-    assert [i["accept"] for i in d["items"]] == [None, "crack_inter", "normal"]
+    assert [i["proposal_id"] for i in d["items"]] == ["cc", "dd", "bb", "aa"]
+    assert [i["accept"] for i in d["items"]] == [None, None, "crack_inter",
+                                                  "normal"]
+    assert all(i["risk_tier"] is None for i in d["items"])
     assert "skip" not in d["choices"]
     r = c.get("/quick/thumb/aa/crop.jpg")
     assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg"
@@ -100,3 +105,19 @@ def test_append_review_revise(tmp_path):
         "crack_inter", "accepted_human", "human")
     lines = (d / "labels.jsonl").read_text().splitlines()
     assert len(lines) == 3
+
+
+def test_risk_tiers_sort_uncertain_critical_first(tmp_path):
+    import json
+    rp = tmp_path / "risk_tiers.json"
+    rp.write_text(json.dumps({"tiers": {
+        "cc": {"tier": "Low", "failure_mode": "none", "why": "noise"},
+        "dd": {"tier": "Critical", "failure_mode": "F02", "why": "gap"},
+        "aa": {"tier": "bogus"}}}))
+    c, _ = _client(tmp_path, rp)
+    d = c.get("/quick/api/items").json()
+    assert [i["proposal_id"] for i in d["items"]] == ["dd", "cc", "bb", "aa"]
+    by = {i["proposal_id"]: i for i in d["items"]}
+    assert (by["dd"]["risk_tier"], by["dd"]["risk_mode"]) == ("Critical", "F02")
+    assert by["aa"]["risk_tier"] is None
+    assert d["tiers"] == ["Critical", "High", "Medium", "Low"]

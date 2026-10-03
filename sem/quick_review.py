@@ -2,6 +2,7 @@
 as the Gradio UI. All thumbnails are small cached JPEGs so the whole queue
 renders at once. Backends are injected callables (local and Modal)."""
 
+import json
 import re
 from pathlib import Path
 
@@ -10,6 +11,17 @@ from .ui import REVIEW_CHOICES, sort_pending, vlm_preselect
 THUMB_W = {"crop": 320, "context": 480}
 GRID_CHOICES = [c for c in REVIEW_CHOICES if c != "skip"]
 _PID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+RISK_TIERS = ["Critical", "High", "Medium", "Low"]
+
+
+def load_risk(path: Path | None) -> dict:
+    """{proposal_id: {tier, failure_mode, why}} from a risk_tiers.json file
+    (review priority only, not a verdict); {} if absent."""
+    if path is None or not Path(path).exists():
+        return {}
+    d = json.loads(Path(path).read_text())
+    return {k: v for k, v in d.get("tiers", {}).items()
+            if v.get("tier") in RISK_TIERS}
 
 
 def to_label(choice: str) -> str:
@@ -23,10 +35,21 @@ def to_label(choice: str) -> str:
     raise ValueError(f"bad choice: {choice!r}")
 
 
-def grid_items(pending: list[dict]) -> list[dict]:
+def grid_items(pending: list[dict], risk: dict | None = None) -> list[dict]:
+    """Queue order (uncertain first, conf asc), then within each of the
+    uncertain / non-uncertain blocks: risk tier Critical..Low, unranked last."""
+    risk = risk or {}
+
+    def key(p):
+        unc = (p.get("vlm_suggestion") or {}).get("label") == "uncertain"
+        t = (risk.get(p.get("proposal_id")) or {}).get("tier")
+        return (0 if unc else 1,
+                RISK_TIERS.index(t) if t in RISK_TIERS else len(RISK_TIERS))
+
     out = []
-    for p in sort_pending(pending):
+    for p in sorted(sort_pending(pending), key=key):
         sug = p.get("vlm_suggestion") or {}
+        rk = risk.get(p.get("proposal_id")) or {}
         out.append({
             "proposal_id": p.get("proposal_id"),
             "image_id": p.get("image_id"),
@@ -36,6 +59,9 @@ def grid_items(pending: list[dict]) -> list[dict]:
             "is_artifact": sug.get("is_artifact"),
             "rationale": sug.get("rationale"),
             "accept": vlm_preselect(sug),
+            "risk_tier": rk.get("tier"),
+            "risk_mode": rk.get("failure_mode"),
+            "risk_why": rk.get("why"),
         })
     return out
 
@@ -53,8 +79,10 @@ def prewarm_thumbs(crop_dir: Path, pids) -> int:
     return n
 
 
-def quick_router(list_pending, crop_dir: Path, submit_review):
-    """submit_review(pid, label, reviewer, revise=False)."""
+def quick_router(list_pending, crop_dir: Path, submit_review,
+                 risk_path: Path | None = None):
+    """submit_review(pid, label, reviewer, revise=False). risk_path is
+    re-read per request so tier edits apply without a restart."""
     from fastapi import APIRouter, HTTPException
     from fastapi.responses import FileResponse, HTMLResponse
     from pydantic import BaseModel
@@ -93,7 +121,8 @@ def quick_router(list_pending, crop_dir: Path, submit_review):
 
     @r.get("/quick/api/items")
     def items():
-        return {"items": grid_items(list_pending()), "choices": GRID_CHOICES}
+        return {"items": grid_items(list_pending(), load_risk(risk_path)),
+                "choices": GRID_CHOICES, "tiers": RISK_TIERS}
 
     @r.get("/quick/thumb/{pid}/{kind}.jpg")
     def thumb(pid: str, kind: str):
@@ -172,6 +201,9 @@ main{padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minma
 #lb{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;gap:12px;z-index:10;padding:20px}
 #lb img{max-width:48vw;max-height:90vh;object-fit:contain;background:#111}
 #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1d2330;color:#fff;padding:8px 14px;border-radius:8px;display:none;z-index:20}
+.risk{font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;color:#fff;cursor:help}
+.r-Critical{background:#a40e26}.r-High{background:#d1242f}.r-Medium{background:#bf8700}.r-Low{background:#6e7781}
+.chip.rk{border-style:dashed}
 .empty{grid-column:1/-1;text-align:center;color:var(--m);padding:40px}
 </style></head><body>
 <header>
@@ -188,8 +220,9 @@ main{padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minma
 <script>
 const BASE = location.pathname.replace(/\/quick\/?$/, '');
 const SHORT = {crack_intra:'crack intra',crack_inter:'crack inter',other_anomaly:'other',edge_bloom:'edge bloom'};
-let items = [], choices = [], filter = 'all', done = {};
+let items = [], choices = [], tiers = [], filter = 'all', done = {};
 const $ = s => document.querySelector(s);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const rev = $('#rev'); rev.value = localStorage.getItem('sem_reviewer') || '';
 rev.oninput = () => localStorage.setItem('sem_reviewer', rev.value.trim());
 function toast(m, ms=1800){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',ms);}
@@ -199,11 +232,14 @@ async function post(url, body){
   if(!r.ok){let d=''; try{d=(await r.json()).detail}catch(e){} throw new Error(d||r.status);}
   return r.json();
 }
-function shown(){return items.filter(it => filter==='all' || it.vlm_label===filter);}
+function shown(){return items.filter(it => filter==='all' ||
+  (filter.startsWith('risk:') ? it.risk_tier===filter.slice(5) : it.vlm_label===filter));}
 function chips(){
   const c = {}; items.forEach(it => c[it.vlm_label] = (c[it.vlm_label]||0)+1);
   const keys = ['all', ...Object.keys(c).sort((a,b)=>c[b]-c[a])];
-  $('#chips').innerHTML = keys.map(k => `<span class="chip ${k===filter?'on':''}" data-k="${k}">${k} (${k==='all'?items.length:c[k]})</span>`).join('');
+  const r = {}; items.forEach(it => {if(it.risk_tier) r[it.risk_tier] = (r[it.risk_tier]||0)+1;});
+  $('#chips').innerHTML = keys.map(k => `<span class="chip ${k===filter?'on':''}" data-k="${k}">${k} (${k==='all'?items.length:c[k]})</span>`).join('')
+    + tiers.filter(t => r[t]).map(t => `<span class="chip rk ${'risk:'+t===filter?'on':''}" data-k="risk:${t}">risk: ${t} (${r[t]})</span>`).join('');
   document.querySelectorAll('.chip').forEach(e => e.onclick = () => {filter=e.dataset.k; render();});
 }
 function stats(){
@@ -227,9 +263,11 @@ function card(it){
     </div>
     <div class="body">
       <div class="top"><span class="badge ${it.vlm_label==='uncertain'?'uncertain':''}">${it.vlm_label||'—'}</span>
+        ${it.risk_tier ? `<span class="risk r-${it.risk_tier}" title="${esc(it.risk_mode)} — ${esc(it.risk_why)}">${it.risk_tier} risk</span>` : ''}
         <span class="conf">${conf}${it.is_artifact?' · artifact':''}</span>
         <span class="meta">${it.image_id} · ${it.source}</span></div>
-      <div class="why" title="${(it.rationale||'').replace(/"/g,'&quot;')}">${it.rationale||''}</div>
+      ${it.risk_tier ? `<div class="why"><b>Risk:</b> ${esc(it.risk_mode)} — ${esc(it.risk_why)}</div>` : ''}
+      <div class="why" title="${esc(it.rationale)}">${esc(it.rationale)}</div>
       ${d ? `<div class="saved">✓ saved as ${d} — click another label to change</div>` : ''}
       <div class="acts">
         <button class="primary" data-c="${acc||''}" ${acc && !d ? '' : 'disabled'}>${acc ? '✓ Accept: '+(SHORT[acc]||acc) : 'No suggestion — pick a label'}</button>
@@ -276,7 +314,7 @@ document.addEventListener('keydown', e => {if(e.key==='Escape') $('#lb').style.d
 (async () => {
   try{
     const r = await fetch(BASE+'/quick/api/items'); const d = await r.json();
-    items = d.items; choices = d.choices; render();
+    items = d.items; choices = d.choices; tiers = d.tiers || []; render();
   }catch(e){$('#grid').innerHTML='<div class="empty">Failed to load: '+e.message+'</div>';}
 })();
 </script></body></html>

@@ -370,4 +370,5 @@ def ui():
                                               f"{VOL}/{P.ANOMALY}",
                                               f"{VOL}/{P.PRED}"],
                          routers=[quick_router(list_pending, ROOT / P.CROPS,
-                                               submit_review)])
+                                               submit_review,
+                                               ROOT / "meta" / "risk_tiers.json")])

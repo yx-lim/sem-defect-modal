@@ -178,7 +178,8 @@ def cmd_ui(args):
     print(f"quick review thumbnails ready: {n}")
     app = mount_fastapi(demo, allowed_paths=[str(ROOT)],
                         routers=[quick_router(list_pending, ROOT / CROPS,
-                                              submit_review)],
+                                              submit_review,
+                                              ROOT / "meta" / "risk_tiers.json")],
                         root_path=os.environ.get("SEM_UI_ROOT_URL") or None)
     uvicorn.run(app, host="0.0.0.0", port=7860)
 
