@@ -111,6 +111,7 @@ def cmd_label(args):
            {"run_id": args.run_id, "label_version": args.label_version,
             "vlm_model": args.model, "n": args.n, "seed": args.seed,
             "vlm_only_first_n": args.vlm_only_first_n,
+            "sampling": "sdk-default (temperature unsupported in anthropic 1.11.0)",
             "selection_cells": r["selection_cells"],
             "proposal_ids": r["proposal_ids"]},
            label_version=args.label_version,

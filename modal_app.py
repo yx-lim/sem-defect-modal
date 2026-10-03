@@ -175,6 +175,7 @@ def label_agent(proposal_ids: list[str] | None, label_version: str,
     _audit(P, "label_agent", started, t0,
            {"label_version": label_version, "vlm_model": vlm_model,
             "vlm_only_first_n": vlm_only_first_n, "n": r["n_labels"],
+            "sampling": "sdk-default (temperature unsupported in anthropic 1.11.0)",
             "selection_cells": r["selection_cells"],
             "proposal_ids": r["proposal_ids"]},
            label_version=label_version)

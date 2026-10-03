@@ -181,15 +181,21 @@ def iou(a, b) -> float:
 
 def dedupe(cands: list[tuple[tuple, float, str]], iou_thr: float = 0.5,
            priority: list[str] = PRIORITY, cap: int = CAP_PER_IMAGE):
-    """cands: [(bbox, score, source)]. Keep higher-priority source on overlap."""
+    """cands: [(bbox, score, source)]. Keep higher-priority source on overlap.
+    The cap applies only to non-random sources; 'random' boxes are the
+    required 'normal' examples and are always kept unless they overlap an
+    already-kept proposal (IoU>iou_thr). Max kept = cap + n_random."""
     rank = {s: i for i, s in enumerate(priority)}
     cands = sorted(cands, key=lambda c: (rank.get(c[2], 99), -c[1]))
     kept: list[tuple[tuple, float, str]] = []
+    n_nonrandom = 0
     for c in cands:
+        if c[2] != "random" and n_nonrandom >= cap:
+            continue
         if all(iou(c[0], k[0]) <= iou_thr for k in kept):
             kept.append(c)
-        if len(kept) >= cap:
-            break
+            if c[2] != "random":
+                n_nonrandom += 1
     return kept
 
 

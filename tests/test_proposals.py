@@ -45,6 +45,20 @@ def test_dedupe_priority():
     assert any(k[2] == "random" and k[0][0] == 500 for k in kept)
 
 
+def test_randoms_survive_cap():
+    # >60 non-random candidates; all 15 non-overlapping randoms must survive
+    cands = [((i * 5 % 700, 0, i * 5 % 700 + 50, 50), float(i), "tophat_crack")
+             for i in range(80)]
+    from sem.proposals import random_boxes
+    cands += [(b, s, "random") for b, s in random_boxes((800, 1200), n=15, seed=0)]
+    kept = dedupe(cands)
+    n_rand = sum(1 for k in kept if k[2] == "random")
+    n_nonrand = sum(1 for k in kept if k[2] != "random")
+    assert n_nonrand <= 60
+    assert n_rand == 15  # none overlap the kept band boxes (IoU<0.5)
+    assert len(kept) <= 75
+
+
 def test_random_source_present():
     img = np.full((500, 800), 200, np.uint8)
     props = propose_for_image(img, "B/g/BSE", "g", "B", "BSE", "run1")
