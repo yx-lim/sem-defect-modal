@@ -3,6 +3,7 @@ import numpy as np
 from sem.contract import Proposal
 from sem.label_agent import (label_proposals, parse_vlm_json,
                              render_context, render_crop)
+from sem.pipeline import select_subset
 
 
 def mk_props(n=10, batch="Batch_1"):
@@ -64,6 +65,31 @@ def test_normal_maps_background():
     labels = label_proposals(mk_props(1), {"Batch_1/g/BSE": img()}, client,
                              label_version="v1")
     assert labels[0].label == "background"
+
+
+def test_select_subset_balance_floor_determinism():
+    # 3 batches x 4 sources, heavy skew: random only 20 of 200
+    props = []
+    for b in ("Batch_1", "Batch_2", "Batch_3"):
+        for i in range(20):
+            props.append(Proposal(proposal_id=f"{b}r{i:08x}"[:12], image_id=f"{b}/g/BSE",
+                                  group_id="g", batch=b, detector="BSE",
+                                  bbox=(0, 0, 10, 10), mask_rle=None,
+                                  source="random", score=0.0, run_id="r"))
+        for i in range(60):
+            props.append(Proposal(proposal_id=f"{b}c{i:08x}"[:12], image_id=f"{b}/g/BSE",
+                                  group_id="g", batch=b, detector="BSE",
+                                  bbox=(0, 0, 10, 10), mask_rle=None,
+                                  source="tophat_crack", score=0.5, run_id="r"))
+    sel1 = select_subset(props, 100, seed=0)
+    sel2 = select_subset(props, 100, seed=0)
+    assert [p.proposal_id for p in sel1] == [p.proposal_id for p in sel2]  # deterministic
+    assert len(sel1) == 100
+    n_rand = sum(1 for p in sel1 if p.source == "random")
+    assert n_rand >= 20  # >=20% floor
+    # cell balance: both batches contribute
+    batches = {p.batch for p in sel1}
+    assert len(batches) == 3
 
 
 def test_render_sizes():

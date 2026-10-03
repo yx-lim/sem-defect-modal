@@ -132,16 +132,21 @@ class DinoV2Head:  # module so it can move to .nn via import inside
                 )
                 self.cls = nn.Conv2d(64, n_classes, 1)
 
-            def forward(self, x):
+            def forward(self, x, tokens=None):
                 # x: [B,1,H,W] uint8-ish float 0..1
+                # tokens: optional precomputed [B,N,D] patch tokens (cached
+                # DINOv2 features); skips the frozen backbone entirely.
                 B, _, H, W = x.shape
-                img3 = x.repeat(1, 3, 1, 1)
-                mean = torch.tensor([0.485, 0.456, 0.406], device=x.device)[None, :, None, None]
-                std = torch.tensor([0.229, 0.224, 0.225], device=x.device)[None, :, None, None]
-                xn = (img3 - mean) / std
-                with torch.no_grad():
-                    f = self.bb.forward_features(xn)
-                    tok = f["x_norm_patchtokens"]  # [B,N,D]
+                if tokens is not None:
+                    tok = tokens.to(x.device, x.dtype)
+                else:
+                    img3 = x.repeat(1, 3, 1, 1)
+                    mean = torch.tensor([0.485, 0.456, 0.406], device=x.device)[None, :, None, None]
+                    std = torch.tensor([0.229, 0.224, 0.225], device=x.device)[None, :, None, None]
+                    xn = (img3 - mean) / std
+                    with torch.no_grad():
+                        f = self.bb.forward_features(xn)
+                        tok = f["x_norm_patchtokens"]  # [B,N,D]
                 N = tok.shape[1]
                 g = int(N ** 0.5)
                 feat = tok.transpose(1, 2).reshape(B, self.embed_dim, g, g)
@@ -255,10 +260,26 @@ def class_weights(masks: list[np.ndarray]) -> np.ndarray:
     return (w / w.sum() * len(CLASSES)).astype(np.float32)
 
 
+def _labelled_tile_origins(mask: np.ndarray, crop: int) -> list[tuple[int, int]]:
+    """Tile-aligned (y,x) origins of crop x crop windows that contain labelled
+    (non-IGNORE) pixels, on the standard tile grid."""
+    from .tiles import STRIDE
+
+    ys, xs = np.nonzero(mask != IGNORE)
+    if not len(ys):
+        return []
+    origins = set()
+    for y, x in zip(ys, xs):
+        y0 = min(max(0, (y // STRIDE) * STRIDE), max(0, mask.shape[0] - crop))
+        x0 = min(max(0, (x // STRIDE) * STRIDE), max(0, mask.shape[1] - crop))
+        origins.add((int(y0), int(x0)))
+    return sorted(origins)
+
+
 def train(
     model,
-    train_data: list[tuple[np.ndarray, np.ndarray]],
-    val_data: list[tuple[np.ndarray, np.ndarray]],
+    train_data: list,
+    val_data: list,
     epochs: int = 40,
     lr_head: float = 1e-3,
     lr_enc: float = 1e-4,
@@ -266,15 +287,19 @@ def train(
     device: str = "cpu",
     seed: int = 0,
     progress=None,
+    feature_provider=None,
 ) -> dict:
-    """Returns metrics dict. train_data: list of (img_u8, mask_u8)."""
+    """Returns metrics dict. train_data: list of (img_u8, mask_u8) or
+    (img_u8, mask_u8, image_id) when feature_provider is set.
+    feature_provider: callable(image_id, y0, x0) -> [1369,D] tokens for the
+    tile-aligned crop at (y0,x0); enables cached-feature CPU training."""
     import torch
     import torch.nn.functional as F
 
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
     model.to(device)
-    w = torch.tensor(class_weights([m for _, m in train_data]), device=device)
+    w = torch.tensor(class_weights([m for _, m, *_ in train_data]), device=device)
     enc_params = [p for n, p in model.named_parameters()
                   if p.requires_grad and ("encoder" in n or n.startswith("bb"))]
     head_params = [p for p in model.parameters() if p.requires_grad and
@@ -287,13 +312,35 @@ def train(
     for ep in range(epochs):
         model.train()
         ep_loss = 0.0
-        for img, mask in train_data:
-            for _ in range(2):  # 2 crops per image per epoch
-                im, mk = augment(img, mask, rng)
-                im, mk = random_crop_pair(im, mk, min(crop, im.shape[0], im.shape[1]), rng)
+        for sample in train_data:
+            img, mask = sample[0], sample[1]
+            iid = sample[2] if len(sample) > 2 else None
+            if feature_provider is not None and iid is not None:
+                origins = _labelled_tile_origins(mask, crop) or [(0, 0)]
+            else:
+                origins = [None, None]  # 2 random crops per image per epoch
+            for org in origins:
+                if org is None:
+                    im, mk = augment(img, mask, rng)
+                    im, mk = random_crop_pair(
+                        im, mk, min(crop, im.shape[0], im.shape[1]), rng)
+                    tokens = None
+                else:
+                    y0, x0 = org
+                    im = img[y0:y0 + crop, x0:x0 + crop]
+                    mk = mask[y0:y0 + crop, x0:x0 + crop]
+                    if im.shape[0] < crop or im.shape[1] < crop:
+                        continue
+                    tokens = feature_provider(iid, y0, x0)
+                    # brightness/contrast jitter only (tokens are geometry-bound)
+                    a = 1.0 + rng.uniform(-0.2, 0.2)
+                    b = rng.uniform(-20, 20)
+                    im = np.clip(im.astype(np.float32) * a + b, 0, 255).astype(np.uint8)
                 x = torch.tensor(im[None, None].astype(np.float32) / 255.0, device=device)
                 y = torch.tensor(mk.astype(np.int64)[None], device=device)
-                logits = model(x)
+                tok = (torch.tensor(np.asarray(tokens)[None], device=device)
+                       if tokens is not None else None)
+                logits = model(x, tokens=tok) if tok is not None else model(x)
                 loss = F.cross_entropy(logits, y, weight=w, ignore_index=IGNORE)
                 loss = loss + soft_dice_loss(logits, y, len(CLASSES))
                 opt.zero_grad()
