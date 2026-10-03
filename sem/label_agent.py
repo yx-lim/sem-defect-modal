@@ -221,10 +221,11 @@ def make_anthropic_client(model_id: str, api_key: str | None = None) -> VlmClien
                     },
                 }
 
+            # anthropic>=1.11 removed the temperature kwarg; the closest to
+            # spec's temperature=0 we can set is the default sampling.
             msg = cli.messages.create(
                 model=model_id,
                 max_tokens=400,
-                temperature=0,
                 system=system,
                 messages=[
                     {
