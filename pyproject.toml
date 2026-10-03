@@ -19,7 +19,6 @@ dependencies = [
     "pillow",
     "pycocotools",
     "imagecodecs",
-    "scikit-learn",
 ]
 
 [project.optional-dependencies]

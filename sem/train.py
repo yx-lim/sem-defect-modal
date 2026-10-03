@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 from skimage import filters, morphology, measure
@@ -161,20 +162,34 @@ class DinoV2Head:  # module so it can move to .nn via import inside
         return _Head()
 
 
-def get_micronet_url(encoder: str = "resnet50", model: str = "micronet") -> str:
-    """Resolve the NASA pretrained-microscopy-models weight URL. Raises if the
-    package/lookup is unavailable — caller should treat that as a hard stop."""
-    import pretrained_microscopy_models as pmm
+# NASA pretrained-microscopy-models MicroNet v1.1 resnet50 weights (verified
+# HTTP 200; the pmm package is intentionally NOT a dependency — it downgrades
+# timm). See https://github.com/nasa/pretrained-microscopy-models
+MICRONET_RESNET50_URL = (
+    "https://nasa-public-data.s3.amazonaws.com/microscopy_segmentation_models/"
+    "resnet50_pretrained_microscopynet_v1.1.pth.tar"
+)
 
-    return pmm.util.get_pretrained_microscopynet_url(encoder, model)
+
+def micronet_weights_sha256(url: str = MICRONET_RESNET50_URL) -> str:
+    """sha256 of the MicroNet .pth.tar (downloads to torch.hub cache)."""
+    import hashlib
+
+    import torch
+
+    path = torch.hub.download_url_to_file(url, dst=None, progress=False) \
+        if not Path(torch.hub.get_dir(), "checkpoints",
+                    Path(url).name).exists() else str(
+        Path(torch.hub.get_dir(), "checkpoints", Path(url).name))
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def build_micronet_unet(n_classes: int = N_CLASSES):
+def build_micronet_unet(n_classes: int = N_CLASSES,
+                        url: str = MICRONET_RESNET50_URL):
     """SMP Unet, resnet50 encoder with MicroNet weights, encoder frozen."""
     import segmentation_models_pytorch as smp
     import torch
 
-    url = get_micronet_url()
     state = torch.hub.load_state_dict_from_url(url, map_location="cpu")
     model = smp.Unet(encoder_name="resnet50", encoder_weights=None,
                      classes=n_classes, activation=None)
