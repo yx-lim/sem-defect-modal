@@ -68,28 +68,27 @@ def test_normal_maps_background():
 
 
 def test_select_subset_balance_floor_determinism():
-    # 3 batches x 4 sources, heavy skew: random only 20 of 200
+    # 6 sources x 3 batches, ample per cell, n=250
+    sources = ["tophat_crack", "dark_void", "fft_curtain", "edge_band",
+               "anomaly_peak", "random"]
     props = []
-    for b in ("Batch_1", "Batch_2", "Batch_3"):
-        for i in range(20):
-            props.append(Proposal(proposal_id=f"{b}r{i:08x}"[:12], image_id=f"{b}/g/BSE",
-                                  group_id="g", batch=b, detector="BSE",
-                                  bbox=(0, 0, 10, 10), mask_rle=None,
-                                  source="random", score=0.0, run_id="r"))
-        for i in range(60):
-            props.append(Proposal(proposal_id=f"{b}c{i:08x}"[:12], image_id=f"{b}/g/BSE",
-                                  group_id="g", batch=b, detector="BSE",
-                                  bbox=(0, 0, 10, 10), mask_rle=None,
-                                  source="tophat_crack", score=0.5, run_id="r"))
-    sel1 = select_subset(props, 100, seed=0)
-    sel2 = select_subset(props, 100, seed=0)
-    assert [p.proposal_id for p in sel1] == [p.proposal_id for p in sel2]  # deterministic
-    assert len(sel1) == 100
+    for bi, b in enumerate(("Batch_1", "Batch_2", "Batch_3")):
+        for si, s in enumerate(sources):
+            for i in range(60):
+                props.append(Proposal(
+                    proposal_id=f"{bi}{si}{i:010d}",
+                    image_id=f"{b}/g/BSE", group_id="g", batch=b,
+                    detector="BSE", bbox=(0, 0, 10, 10), mask_rle=None,
+                    source=s, score=0.5, run_id="r"))
+    sel1 = select_subset(props, 250, seed=0)
+    sel2 = select_subset(props, 250, seed=0)
+    assert len(sel1) == 250
+    assert len({p.proposal_id for p in sel1}) == 250  # no duplicates
     n_rand = sum(1 for p in sel1 if p.source == "random")
-    assert n_rand >= 20  # >=20% floor
-    # cell balance: both batches contribute
-    batches = {p.batch for p in sel1}
-    assert len(batches) == 3
+    assert n_rand >= 50  # >=20% floor
+    assert [p.proposal_id for p in sel1] == [p.proposal_id for p in sel2]  # deterministic
+    # all 3 batches still represented
+    assert len({p.batch for p in sel1}) == 3
 
 
 def test_render_sizes():

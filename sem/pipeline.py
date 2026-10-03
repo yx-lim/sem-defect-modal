@@ -255,16 +255,19 @@ def select_subset(proposals: list[Proposal], n: int, seed: int = 0,
                 break
             if cells[k]:
                 order.append(cells[k].pop())
-    # enforce >=20% random-source proposals
-    n_rand_needed = int(np.ceil(min_random_frac * n))
-    rand_in = sum(1 for p in order if p.source == "random")
+    # enforce >=min_random_frac 'random' proposals: replace the last-added
+    # non-random items with leftover randoms until the floor is met
+    n_rand_needed = int(np.ceil(min_random_frac * min(n, len(order))))
     rand_left = [p for k in keys for p in cells[k] if k[1] == "random"]
-    i = 0
-    while rand_in < n_rand_needed and i < len(rand_left):
-        order.append(rand_left[i])
-        rand_in += 1
-        i += 1
-    return order[:n] if len(order) > n else order
+    li = 0
+    i = len(order) - 1
+    while (sum(1 for p in order if p.source == "random") < n_rand_needed
+           and li < len(rand_left) and i >= 0):
+        if order[i].source != "random":
+            order[i] = rand_left[li]
+            li += 1
+        i -= 1
+    return order
 
 
 def label(root: Path, run_id: str, label_version: str, client,
