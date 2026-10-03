@@ -254,7 +254,7 @@ def results_for(root: Path, image_id: str) -> tuple:
         missing.append("No predicted mask yet — run train + detect after label review.")
     if not kpis:
         missing.append("No KPIs yet — run kpi after detect.")
-    status = "All results available." if not missing else "\n".join(missing)
+    status = "All results available." if not missing else "\n\n".join(missing)
     return (str(write_preview(heat)) if heat else None,
             str(write_preview(ovl)) if ovl else None,
             kpis, status)
