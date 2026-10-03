@@ -31,10 +31,23 @@ anthropic_secret = modal.Secret.from_name("anthropic")
 
 @app.local_entrypoint()
 def upload(data_dir: str = "/home/ubuntu/data/sem"):
+    with vol.batch_upload(force=True) as b:
+        b.put_directory(data_dir, "/incoming")
+    print(ingest_remote.remote())
+
+
+@app.function(image=image, volumes={VOL: vol}, timeout=3600)
+def ingest_remote() -> dict:
     import sem.pipeline as P
 
-    r = P.ingest(ROOT, Path(data_dir))
-    print(r)
+    t0, started = __import__("time").time(), P._now()
+    vol.reload()
+    r = P.ingest(ROOT, ROOT / "incoming")
+    vol.commit()
+    _audit(P, "ingest", started, t0, {"data_dir": "incoming"},
+           metrics={"added": r["added"], "n_images": r["n_images"]})
+    audit_flush.remote()
+    return r
 
 
 # ---------------- Embedder ----------------
@@ -84,6 +97,7 @@ def _audit(P, function, started_at, t0, config, gpu=None, est_cost_usd=None,
                             **kw)
     rec.modal.function_call_id = fcid
     audit_write(ROOT, rec)
+    vol.commit()  # make the pending record visible to audit_flush
     return rec
 
 
@@ -250,6 +264,15 @@ def kpi_verdict(image_ids: list[str], reference_spec: str = "all",
 @app.function(image=image, volumes={VOL: vol})
 @modal.fastapi_endpoint(method="POST")
 def verdict_api(body: dict) -> dict:
+    import fastapi
+    import sem.pipeline as P
+
+    try:
+        P.check_name(body.get("reference_spec", "all"), "reference_spec")
+        P.check_name(body.get("model_version"), "model_version")
+        P.check_name(body.get("anomaly_run_id"), "anomaly_run_id")
+    except ValueError as exc:
+        raise fastapi.HTTPException(400, str(exc))
     return kpi_verdict.remote(
         body["image_ids"], body.get("reference_spec", "all"),
         body.get("model_version"), body.get("anomaly_run_id"))
@@ -342,4 +365,6 @@ def ui():
 
     demo = build_app(list_pending, get_crop_ctx, submit_review, list_images,
                      get_results, get_audit, verify_chain.remote)
-    return mount_fastapi(demo, allowed_paths=[VOL])
+    return mount_fastapi(demo, allowed_paths=[f"{VOL}/{P.CROPS}",
+                                              f"{VOL}/{P.ANOMALY}",
+                                              f"{VOL}/{P.PRED}"])

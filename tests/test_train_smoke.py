@@ -73,5 +73,24 @@ def test_train_smoke_dinov2_head():
         mask[150:180, 150:180] = CLASS_INDEX["background"]
         data.append((img, mask))
     model = DinoV2Head(StubBackbone(), n_classes=len(CLASS_INDEX))
-    metrics = train(model, data, data, epochs=2, crop=128, device="cpu")
+    # 3-tuple (img, mask, iid) val samples must not crash evaluate
+    data3 = [(i, m, "B/g/BSE") for i, m in data]
+    metrics = train(model, data, data3, epochs=2, crop=128, device="cpu")
     assert "iou" in metrics and "dice" in metrics
+
+
+@pytest.mark.slow
+def test_train_ignore_mask_finite():
+    """Mask IGNORE except a tiny labelled patch: crops mostly empty; params
+    must stay finite (no NaN loss)."""
+    import torch
+    from sem.train import DinoV2Head
+
+    rng = np.random.default_rng(0)
+    img = rng.normal(180, 8, (256, 256)).clip(0, 255).astype(np.uint8)
+    mask = np.full((256, 256), 255, np.uint8)
+    mask[10:14, 10:14] = CLASS_INDEX["void"]
+    model = DinoV2Head(StubBackbone(), n_classes=len(CLASS_INDEX))
+    train(model, [(img, mask)], [(img, mask)], epochs=2, crop=128, device="cpu")
+    for p in model.parameters():
+        assert torch.isfinite(p).all()

@@ -85,6 +85,10 @@ def ingest(root: Path, data_dir: Path) -> dict:
     for e in inv_new["images"]:
         dst = raw_path(root, e)
         dst.parent.mkdir(parents=True, exist_ok=True)
+        changed = (e["image_id"] in known
+                   and known[e["image_id"]]["sha256"] != e["sha256"])
+        if changed and dst.exists():
+            dst.unlink()
         if not dst.exists():
             src = Path(e["path"])
             try:
@@ -93,7 +97,17 @@ def ingest(root: Path, data_dir: Path) -> dict:
                 import shutil
 
                 shutil.copy2(src, dst)
-        if e["image_id"] not in known or known[e["image_id"]]["sha256"] != e["sha256"]:
+        if changed:
+            # invalidate cached features + per-group coreset so they recompute
+            for p in (feature_path(root, e["image_id"]),
+                      Path(str(feature_path(root, e["image_id"]))
+                           .replace(".npy", "_coords.npy")),
+                      coreset_path(root, e["image_id"]),
+                      Path(str(coreset_path(root, e["image_id"]))
+                           .replace(".npy", "_idx.npy"))):
+                if p.exists():
+                    p.unlink()
+        if e["image_id"] not in known or changed:
             known[e["image_id"]] = {**e, "path": str(dst)}
             added += 1
         else:
@@ -184,14 +198,14 @@ def anomaly_scan(root: Path, reference_spec: str = "all",
         ref_groups = {e["group_id"] for e in bse}
     coresets = {e["group_id"]: group_coreset_cached(root, e, coreset_ratio)
                 for e in bse if e["group_id"] in ref_groups}
-    results, all_scores = {}, []
+    results, all_scores = {}, {}
     for e in bse:
         g = e["group_id"]
         bank = logo_bank(coresets, g)
         s = knn_scores(bank, _feats_for(root, e))
         results[e["image_id"]] = (e, s)
-        all_scores.append(s)
-    thr = calibrate_threshold(all_scores, pct=pct)
+        all_scores[e["image_id"]] = (e, s)
+    thr = calibrate_threshold(_ref_scores(all_scores, ref_groups), pct=pct)
     outdir = root / ANOMALY / run_id
     outdir.mkdir(parents=True, exist_ok=True)
     stats = {}
@@ -258,6 +272,11 @@ def results_for(root: Path, image_id: str) -> tuple:
     return (str(write_preview(heat)) if heat else None,
             str(write_preview(ovl)) if ovl else None,
             kpis, status)
+
+
+def _ref_scores(scored: dict, ref_groups: set) -> list:
+    """Calibration input: scores of images whose group is a reference group."""
+    return [s for e, s in scored.values() if e["group_id"] in ref_groups]
 
 
 def _heat_overlay(img: np.ndarray, heat: np.ndarray, ds: int) -> np.ndarray:
@@ -455,6 +474,8 @@ def train_model(root: Path, label_version: str, arch: str = "dinov2_head",
     from .train import (build_mask, build_model, class_counts, group_split,
                         train, weights_sha256)
 
+    check_name(label_version, "label_version")
+    check_name(model_version, "model_version")
     labels = [l for l in latest_labels(root, label_version).values()
               if l.status in ("accepted_vlm_only", "accepted_human")]
     props = load_proposals(root)
@@ -487,8 +508,8 @@ def train_model(root: Path, label_version: str, arch: str = "dinov2_head",
                                             _entries(root, BSE_ONLY)])
     metrics = train(model, tr, va, epochs=epochs, device=device, seed=seed,
                     crop=crop, feature_provider=provider)
-    metrics["counts"] = {"train": class_counts([m for _, m in tr]),
-                         "val": class_counts([m for _, m in va]),
+    metrics["counts"] = {"train": class_counts([m for _, m, *_ in tr]),
+                         "val": class_counts([m for _, m, *_ in va]),
                          "train_groups": tr_g, "val_groups": va_g}
     mv = model_version or f"{arch}_{label_version}_{uuid.uuid4().hex[:8]}"
     outdir = root / MODELS / mv
@@ -534,21 +555,22 @@ def _feature_provider(root: Path, image_ids: list[str]):
 # ---------------- detect ----------------
 
 def detect_image(root: Path, image_id: str, model_version: str, model=None,
-                 device: str = "cpu") -> dict:
+                 device: str = "cpu", out_dir: Path | None = None) -> dict:
     import torch
 
     from .detect import save_class_png, save_overlay
     from .train import build_model, predict_full
 
+    check_name(model_version, "model_version")
     cfg = json.loads((root / MODELS / model_version / "config.json").read_text())
     if model is None:
         model = build_model(cfg["arch"], device=device)
         model.load_state_dict(torch.load(root / MODELS / model_version / "weights.pt",
-                                         map_location=device))
+                                         map_location=device, weights_only=True))
     e = _entry(root, image_id)
     img = _read(root, e)
     mask = predict_full(model, img, device=device)
-    outdir = root / PRED / model_version
+    outdir = out_dir or root / PRED / model_version
     outdir.mkdir(parents=True, exist_ok=True)
     save_class_png(mask, str(outdir / f"{_safe(image_id)}.png"))
     save_overlay(img, mask, str(outdir / f"{_safe(image_id)}_overlay.png"))
@@ -557,21 +579,71 @@ def detect_image(root: Path, image_id: str, model_version: str, model=None,
 
 # ---------------- kpi / verdict ----------------
 
+def check_name(s: str | None, field: str) -> str | None:
+    """Reject path-unsafe names. None passes through; reference_spec must be
+    'all' or 'batch:<name>'."""
+    import re
+
+    if s is None:
+        return s
+    pat = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    if field == "reference_spec":
+        if s == "all":
+            return s
+        if s.startswith("batch:") and ".." not in s and re.match(
+                pat, s.split(":", 1)[1]):
+            return s
+        raise ValueError(f"bad {field}: {s!r}")
+    if ".." not in s and re.match(pat, s):
+        return s
+    raise ValueError(f"bad {field}: {s!r}")
+
+
 def kpi_verdict(root: Path, image_ids: list[str], reference_spec: str = "all",
                 model_version: str | None = None,
                 anomaly_run_id: str | None = None,
                 n_vlm_only_labels: int = 0) -> dict:
     import cv2
 
+    from .contract import KPIVerdict
     from .kpi import compute_kpis
     from .verdict import verdict_for_groups
 
+    check_name(reference_spec, "reference_spec")
+    check_name(model_version, "model_version")
+    check_name(anomaly_run_id, "anomaly_run_id")
     bse = _entries(root, BSE_ONLY)
     if reference_spec.startswith("batch:"):
         ref = [e for e in bse if e["batch"] == reference_spec.split(":", 1)[1]]
     else:
         ref = bse
     test_ids = set(image_ids)
+
+    if model_version:
+        wanted = ([e for e in bse if e["image_id"] in test_ids] +
+                  [e for e in ref if e["image_id"] not in test_ids])
+        missing = [e["image_id"] for e in wanted
+                   if not (root / PRED / model_version
+                           / f"{_safe(e['image_id'])}.png").exists()]
+        if missing:
+            v = KPIVerdict(
+                image_ids=image_ids,
+                reference={"spec": reference_spec,
+                           "image_ids": [e["image_id"] for e in ref
+                                         if e["image_id"] not in test_ids],
+                           "n_groups": 0},
+                per_image=[{"image_id": iid, "kpis": {}} for iid in image_ids],
+                per_kpi=[],
+                engineering_thresholds=None,
+                verdict="abstain",
+                reasons=[f"missing predicted masks for image_ids: {missing} "
+                         f"under pred/{model_version} — run detect first"],
+                limitations=[],
+            )
+            out = root / KPI / f"{uuid.uuid4()}.json"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(v.model_dump_json())
+            return v.model_dump()
     thr = None
     if anomaly_run_id:
         thr = json.loads((root / ANOMALY / anomaly_run_id / "threshold.json")
@@ -638,12 +710,15 @@ def check_frozen(root: Path, model_version: str) -> None:
 
 def evaluate_holdout(root: Path, image_ids: list[str], model_version: str,
                      anomaly_run_id: str, device: str = "cpu") -> dict:
+    check_name(model_version, "model_version")
+    check_name(anomaly_run_id, "anomaly_run_id")
     check_frozen(root, model_version)
     tag = uuid.uuid4().hex[:8]
-    results = [detect_image(root, iid, model_version, device=device)
-               for iid in image_ids]
     out = root / EVAL / tag
     out.mkdir(parents=True, exist_ok=True)
+    results = [detect_image(root, iid, model_version, device=device,
+                            out_dir=out / "pred")
+               for iid in image_ids]
     (out / "results.json").write_text(json.dumps(results))
     return {"eval_id": tag, "results": results}
 

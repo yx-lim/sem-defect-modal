@@ -321,15 +321,22 @@ def train(
                 origins = [None, None]  # 2 random crops per image per epoch
             for org in origins:
                 if org is None:
-                    im, mk = augment(img, mask, rng)
-                    im, mk = random_crop_pair(
-                        im, mk, min(crop, im.shape[0], im.shape[1]), rng)
-                    tokens = None
+                    im = mk = tokens = None
+                    for _try in range(10):
+                        im, mk = augment(img, mask, rng)
+                        im, mk = random_crop_pair(
+                            im, mk, min(crop, im.shape[0], im.shape[1]), rng)
+                        if (mk != IGNORE).sum() > 0:
+                            break
+                    if (mk != IGNORE).sum() == 0:
+                        continue
                 else:
                     y0, x0 = org
                     im = img[y0:y0 + crop, x0:x0 + crop]
                     mk = mask[y0:y0 + crop, x0:x0 + crop]
                     if im.shape[0] < crop or im.shape[1] < crop:
+                        continue
+                    if (mk != IGNORE).sum() == 0:
                         continue
                     tokens = feature_provider(iid, y0, x0)
                     # brightness/contrast jitter only (tokens are geometry-bound)
@@ -367,7 +374,7 @@ def evaluate(model, data: list[tuple[np.ndarray, np.ndarray]], device: str = "cp
     crack_tp = crack_fp = crack_fn = 0
     conf = np.zeros((len(CLASSES), len(CLASSES)), dtype=np.int64)
     with torch.no_grad():
-        for img, mask in data:
+        for img, mask, *_ in data:
             preds = predict_full(model, img, device=device, tile=crop)
             valid = mask != IGNORE
             p, t = preds[valid], mask[valid]
