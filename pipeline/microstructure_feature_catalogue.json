@@ -1,0 +1,1420 @@
+{
+  "version": "1.0",
+  "date": "2026-10-03",
+  "feature_count": 84,
+  "scope": "Proposed catalogue for fresh, destructively prepared graphite-like electrode SEM; Si chemistry unconfirmed",
+  "state": "Research/annotation plan only. No new feature masks, measured values, or image overlays were generated.",
+  "source_data_context": {
+    "batch_folders": 3,
+    "detector_images": 93,
+    "associated_field_stems": 31,
+    "detectors": [
+      "BSE",
+      "ETD",
+      "Inlens",
+      "SE"
+    ],
+    "serial_3d_stack_confirmed": false,
+    "nominal_pixel_pitch_nm": 25,
+    "pixel_pitch_status": "TIFF-tag estimate, not validated spatial resolution"
+  },
+  "recommended_first_pass_ids": [
+    "P01",
+    "P02",
+    "P03",
+    "P05",
+    "P08",
+    "V01",
+    "V02",
+    "V05",
+    "V08",
+    "V09",
+    "D01",
+    "D02",
+    "I01",
+    "I03",
+    "H01",
+    "H02",
+    "H09",
+    "Q01",
+    "Q04",
+    "Q05",
+    "Q07",
+    "Q09",
+    "Q10"
+  ],
+  "features": [
+    {
+      "id": "P01",
+      "group": "Particles",
+      "name": "Particle identity and boundaries",
+      "proposed_annotation_or_measurement": "Instance masks; neutral contrast classes until chemistry is confirmed",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Basis for reproducible object measurements",
+      "sources": [
+        "S6",
+        "S10",
+        "S12"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "P02",
+      "group": "Particles",
+      "name": "2D section-profile sizes and outliers",
+      "proposed_annotation_or_measurement": "Cross-section area, equivalent diameter, Feret lengths, quantiles and fine/oversize tails",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Section-biased descriptor of packing and diffusion geometry",
+      "sources": [
+        "S1",
+        "S2"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "P03",
+      "group": "Particles",
+      "name": "Aspect ratio and section-intercept width",
+      "proposed_annotation_or_measurement": "Major/minor axes; thickness only for suitable known section/particle orientation",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Shape-dependent packing and directional transport",
+      "sources": [
+        "S1",
+        "S2"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "P04",
+      "group": "Particles",
+      "name": "Roundness, angularity and solidity",
+      "proposed_annotation_or_measurement": "Circularity, convexity, concavity and corner curvature",
+      "observability": "2D",
+      "behavioural_relevance": "Packing and possible stress-concentration geometry",
+      "sources": [
+        "S1",
+        "S2"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "P05",
+      "group": "Particles",
+      "name": "Projected particle orientation",
+      "proposed_annotation_or_measurement": "Long-axis angles, dispersion and 2D alignment tensor",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Directional transport; coating direction must be known",
+      "sources": [
+        "S1",
+        "S2"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "P06",
+      "group": "Particles",
+      "name": "Perimeter texture and faceting",
+      "proposed_annotation_or_measurement": "Resolved boundary roughness and facet lengths",
+      "observability": "2D",
+      "behavioural_relevance": "Interface geometry; section roughness is not 3D surface area",
+      "sources": [
+        "S1",
+        "S8"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "P07",
+      "group": "Particles",
+      "name": "Fragments, chips and fines",
+      "proposed_annotation_or_measurement": "Fragment instances and local fine-particle fraction",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Possible processing damage; pore constriction",
+      "sources": [
+        "S7",
+        "S13"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "P08",
+      "group": "Particles",
+      "name": "Agglomerate architecture",
+      "proposed_annotation_or_measurement": "Cluster envelopes, internal gaps, constituent sizes and compactness",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Local packing and reaction heterogeneity",
+      "sources": [
+        "S7",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "P09",
+      "group": "Particles",
+      "name": "Apparent planar spacing and coordination",
+      "proposed_annotation_or_measurement": "In-plane distances and section-biased neighbour/contact counts",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Local contact and packing descriptors, not 3D coordination",
+      "sources": [
+        "S1",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "P10",
+      "group": "Particles",
+      "name": "Lamellar or internal texture",
+      "proposed_annotation_or_measurement": "Resolved bands, internal boundaries and orientation contrast",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Flag cleavage/texture candidates; not crystal identity",
+      "sources": [
+        "S2",
+        "S11"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V01",
+      "group": "Pores and gaps",
+      "name": "Apparent void area fraction",
+      "proposed_annotation_or_measurement": "Resolved dark void-like mask divided by valid area",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Transport/energy-density trade-off; phase ambiguity matters",
+      "sources": [
+        "S2",
+        "S12"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V02",
+      "group": "Pores and gaps",
+      "name": "Pore-body size distribution",
+      "proposed_annotation_or_measurement": "Equivalent sizes, local thickness and upper/lower tails",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Heterogeneous electrolyte space",
+      "sources": [
+        "S1",
+        "S8"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V03",
+      "group": "Pores and gaps",
+      "name": "Pore shape and orientation",
+      "proposed_annotation_or_measurement": "Slit, wedge, rounded, elongated; aspect ratio and angle",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Directional pathways and local access",
+      "sources": [
+        "S1",
+        "S2"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V04",
+      "group": "Pores and gaps",
+      "name": "Interparticle versus intraparticle location",
+      "proposed_annotation_or_measurement": "Relationship to segmented particle boundaries",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Transport space versus internal accommodation volume",
+      "sources": [
+        "S2",
+        "S3"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V05",
+      "group": "Pores and gaps",
+      "name": "Pore throats and constrictions",
+      "proposed_annotation_or_measurement": "In-plane neck width, minimum aperture and throat/body ratio",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Candidate transport bottlenecks; confirm in 3D",
+      "sources": [
+        "S1",
+        "S4"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V06",
+      "group": "Pores and gaps",
+      "name": "Channels, junctions and endpoints",
+      "proposed_annotation_or_measurement": "Skeleton segments, branch density and endpoint density",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Planar network description, not 3D connectivity",
+      "sources": [
+        "S4"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V07",
+      "group": "Pores and gaps",
+      "name": "Isolated-looking and dead-end-looking pores",
+      "proposed_annotation_or_measurement": "Connected components and path endpoints in this section",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Need 3D before calling closed or inaccessible",
+      "sources": [
+        "S4"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V08",
+      "group": "Pores and gaps",
+      "name": "Void clusters and large cavities",
+      "proposed_annotation_or_measurement": "Cluster size, spacing and cavity masks",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Local density and structural heterogeneity",
+      "sources": [
+        "S7",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V09",
+      "group": "Pores and gaps",
+      "name": "Dense bands and pore-rich bands",
+      "proposed_annotation_or_measurement": "Windowed void fraction and directional profiles",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Candidate nonuniform transport regions",
+      "sources": [
+        "S1",
+        "S13"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V10",
+      "group": "Pores and gaps",
+      "name": "Surface apertures and pore entrances",
+      "proposed_annotation_or_measurement": "Opening size/density at a verified free surface",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Electrolyte filling and access geometry",
+      "sources": [
+        "S8"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V11",
+      "group": "Pores and gaps",
+      "name": "Void shape around a particle",
+      "proposed_annotation_or_measurement": "Halo width, perimeter fraction, asymmetric clearance",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Possible separation or expansion accommodation",
+      "sources": [
+        "S3",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "V12",
+      "group": "Pores and gaps",
+      "name": "Resolved pore topology statistics",
+      "proposed_annotation_or_measurement": "2D Euler characteristic, chord lengths and lineal-path descriptors",
+      "observability": "2D-derived",
+      "behavioural_relevance": "Research descriptors; validate predictive value locally",
+      "sources": [
+        "S4"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "D01",
+      "group": "Discontinuities and damage",
+      "name": "Intraparticle fissures",
+      "proposed_annotation_or_measurement": "Mask/centreline within a particle; cause remains unknown",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Mechanical integrity and newly exposed surfaces",
+      "sources": [
+        "S2",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "D02",
+      "group": "Discontinuities and damage",
+      "name": "Interparticle/coating cracks",
+      "proposed_annotation_or_measurement": "Extended discontinuities across several particle boundaries",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Potential cohesive/contact-network failure",
+      "sources": [
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "D03",
+      "group": "Discontinuities and damage",
+      "name": "Crack aperture and opening profile",
+      "proposed_annotation_or_measurement": "Width distribution along each resolved fissure",
+      "observability": "2D-derived",
+      "behavioural_relevance": "Distinguishes hairline versus wide separation",
+      "sources": [
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "D04",
+      "group": "Discontinuities and damage",
+      "name": "Crack length, branching and orientation",
+      "proposed_annotation_or_measurement": "Length density, branch/tip count and alignment",
+      "observability": "2D-derived",
+      "behavioural_relevance": "Damage architecture and spatial anisotropy",
+      "sources": [
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "D05",
+      "group": "Discontinuities and damage",
+      "name": "Cleavage and exfoliation-like separation",
+      "proposed_annotation_or_measurement": "Repeated lamellar gaps within resolved particles",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Possible flake separation; preparation remains an alternative",
+      "sources": [
+        "S11"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "D06",
+      "group": "Discontinuities and damage",
+      "name": "Chipping, fragmentation and spallation",
+      "proposed_annotation_or_measurement": "Debris/fragment geometry and adjacent missing-material region",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Possible loss of mechanical/contact integrity",
+      "sources": [
+        "S7",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "D07",
+      "group": "Discontinuities and damage",
+      "name": "Missing-particle cavity; mechanical pull-out candidate",
+      "proposed_annotation_or_measurement": "Particle-shaped cavity; pull-out interpretation only with mechanical-preparation evidence",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Origin cannot be established from cavity shape alone",
+      "sources": [
+        "S12",
+        "S15"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "D08",
+      "group": "Discontinuities and damage",
+      "name": "Correlated damage around an inclusion or cluster",
+      "proposed_annotation_or_measurement": "Distances between inclusion, gap and crack masks",
+      "observability": "2D-derived",
+      "behavioural_relevance": "Proposed stress-concentration screening descriptor",
+      "sources": [
+        "S7",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "I01",
+      "group": "Contacts and interfaces",
+      "name": "Particle-particle contact",
+      "proposed_annotation_or_measurement": "Apparent touching length and gap versus contact",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Electronic-pathway proxy; touch is not conductivity",
+      "sources": [
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "I02",
+      "group": "Contacts and interfaces",
+      "name": "Contact-poor or apparently isolated particle",
+      "proposed_annotation_or_measurement": "Low contact perimeter/coordination in section",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Candidate underutilised material; 3D can overturn",
+      "sources": [
+        "S3",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "I03",
+      "group": "Contacts and interfaces",
+      "name": "Particle-fine-matrix interface",
+      "proposed_annotation_or_measurement": "Coverage, discontinuities and separation gaps",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Potential adhesion/contact quality; matrix identity unconfirmed",
+      "sources": [
+        "S6",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "I04",
+      "group": "Contacts and interfaces",
+      "name": "Carbon-binder coverage and bridges",
+      "proposed_annotation_or_measurement": "Confirmed CBD masks; coverage fraction, bridge/neck geometry",
+      "observability": "Chemical/contrast confirmation",
+      "behavioural_relevance": "Cohesion and electronic pathways",
+      "sources": [
+        "S5",
+        "S6"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "I05",
+      "group": "Contacts and interfaces",
+      "name": "Bare patches and binder-rich islands",
+      "proposed_annotation_or_measurement": "Confirmed phase coverage on active-particle boundaries",
+      "observability": "Chemical/contrast confirmation",
+      "behavioural_relevance": "Trade-off between access and contact support",
+      "sources": [
+        "S5",
+        "S6"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "I06",
+      "group": "Contacts and interfaces",
+      "name": "Coating-current-collector interface",
+      "proposed_annotation_or_measurement": "Contact continuity and gap length/width",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Adhesion and current collection if collector is visible",
+      "sources": [
+        "S5",
+        "S7"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "I07",
+      "group": "Contacts and interfaces",
+      "name": "Delamination and layer separation",
+      "proposed_annotation_or_measurement": "Gap morphology, lifted layer and debonded-length candidate",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Loss of adhesion; cause/strength needs testing",
+      "sources": [
+        "S5",
+        "S7"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "I08",
+      "group": "Contacts and interfaces",
+      "name": "Interface perimeter and junction geometry",
+      "proposed_annotation_or_measurement": "Particle-pore/matrix boundary lengths and junction density",
+      "observability": "2D-derived",
+      "behavioural_relevance": "Geometric access proxy; not active electrochemical area",
+      "sources": [
+        "S4",
+        "S6"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "H01",
+      "group": "Heterogeneity and coating",
+      "name": "Local packing and contrast-phase fractions",
+      "proposed_annotation_or_measurement": "Windowed area fractions and distributions",
+      "observability": "2D-derived",
+      "behavioural_relevance": "Nonuniform structure can create nonuniform reaction",
+      "sources": [
+        "S1",
+        "S13"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "H02",
+      "group": "Heterogeneity and coating",
+      "name": "Spatial clustering and segregation",
+      "proposed_annotation_or_measurement": "Pair correlation, neighbour statistics and cluster maps",
+      "observability": "2D-derived",
+      "behavioural_relevance": "Detects local enrichment missed by global means",
+      "sources": [
+        "S3",
+        "S13"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "H03",
+      "group": "Heterogeneity and coating",
+      "name": "Depth gradients",
+      "proposed_annotation_or_measurement": "Particle, void and confirmed-phase profiles through coating",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Requires known collector/free-surface direction",
+      "sources": [
+        "S5",
+        "S13"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "H04",
+      "group": "Heterogeneity and coating",
+      "name": "Local coating thickness and waviness",
+      "proposed_annotation_or_measurement": "Surface-to-collector distance profile",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Loading/transport-distance variation; not mass loading alone",
+      "sources": [
+        "S7"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "H05",
+      "group": "Heterogeneity and coating",
+      "name": "Skin layers, compaction and lamination bands",
+      "proposed_annotation_or_measurement": "Dense bands, interfaces and orientation changes",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Possible drying/calendering heterogeneity",
+      "sources": [
+        "S5",
+        "S13"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "H06",
+      "group": "Heterogeneity and coating",
+      "name": "Pinholes, craters, missing coating and exposed foil",
+      "proposed_annotation_or_measurement": "Masks and local coverage loss",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Possible material loss/current nonuniformity; correct field needed",
+      "sources": [
+        "S7"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "H07",
+      "group": "Heterogeneity and coating",
+      "name": "Ribs, streaks, edge beads, wrinkles and blisters",
+      "proposed_annotation_or_measurement": "Mesoscale surface/cross-section geometry",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Manufacturing irregularity; may exceed present field size",
+      "sources": [
+        "S7"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "H08",
+      "group": "Heterogeneity and coating",
+      "name": "Spatial statistics at multiple scales",
+      "proposed_annotation_or_measurement": "Window-size dependence, two-point correlation and anisotropy",
+      "observability": "2D-derived",
+      "behavioural_relevance": "Research descriptors for distribution shifts, not proven failure scores",
+      "sources": [
+        "S1",
+        "S4"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "H09",
+      "group": "Heterogeneity and coating",
+      "name": "Unknown inclusions or foreign fibres",
+      "proposed_annotation_or_measurement": "Unusual contrast/shape masks; embedded versus superficial",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Contamination screening; chemistry and origin unconfirmed",
+      "sources": [
+        "S7"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "H10",
+      "group": "Heterogeneity and coating",
+      "name": "Collector wrinkles, pits, tears and burrs",
+      "proposed_annotation_or_measurement": "Foil defects if collector/edge is present",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Contact/assembly risk; corrosion and shorting require confirmation",
+      "sources": [
+        "S7"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "S01",
+      "group": "Conditional silicon features",
+      "name": "Si-containing particle size and dispersion",
+      "proposed_annotation_or_measurement": "Chemically confirmed instances and distributions",
+      "observability": "Chemical confirmation",
+      "behavioural_relevance": "Silicon morphology and local utilisation",
+      "sources": [
+        "S3",
+        "S10"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "S02",
+      "group": "Conditional silicon features",
+      "name": "Si agglomerate density and architecture",
+      "proposed_annotation_or_measurement": "Cluster envelope, internal voids and neighbour phases",
+      "observability": "Chemical confirmation",
+      "behavioural_relevance": "Expansion/contact heterogeneity",
+      "sources": [
+        "S3",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "S03",
+      "group": "Conditional silicon features",
+      "name": "Graphite enclosure of Si",
+      "proposed_annotation_or_measurement": "Fraction of confirmed Si perimeter adjacent to graphite",
+      "observability": "Chemical + 3D confirmation",
+      "behavioural_relevance": "2D screen for restricted access; enclosure is not always beneficial",
+      "sources": [
+        "S3"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "S04",
+      "group": "Conditional silicon features",
+      "name": "Si-contact/free-volume neighbourhood",
+      "proposed_annotation_or_measurement": "Contact and available-gap map around Si",
+      "observability": "Chemical + 3D confirmation",
+      "behavioural_relevance": "Mechanical accommodation versus electrical isolation",
+      "sources": [
+        "S3",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "S05",
+      "group": "Conditional silicon features",
+      "name": "Internal Si pore architecture",
+      "proposed_annotation_or_measurement": "Directional channels, slits, dispersed pores and ligament thickness",
+      "observability": "Higher-resolution + chemical confirmation",
+      "behavioural_relevance": "Architecture-dependent expansion and fracture",
+      "sources": [
+        "S3"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "S06",
+      "group": "Conditional silicon features",
+      "name": "Core-shell morphology and shell defects",
+      "proposed_annotation_or_measurement": "Shell thickness, discontinuities and core porosity",
+      "observability": "Chemical + high-resolution confirmation",
+      "behavioural_relevance": "Possible protective/coating effects; identity cannot come from brightness",
+      "sources": [
+        "S3",
+        "S10"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "C01",
+      "group": "Chemical and crystallographic features",
+      "name": "Graphite/Si/SiOx/other phase identity",
+      "proposed_annotation_or_measurement": "EDS for elemental Si/inclusions; XPS/EELS/XANES for oxidation state; calibrated ESB/Raman/spectroscopy for carbon phases",
+      "observability": "Chemical confirmation",
+      "behavioural_relevance": "Elemental carbon does not distinguish graphite, binder and carbon black",
+      "sources": [
+        "S3",
+        "S6",
+        "S10"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "C02",
+      "group": "Chemical and crystallographic features",
+      "name": "Binder and conductive additive distribution",
+      "proposed_annotation_or_measurement": "Registered chemistry or calibrated contrast maps",
+      "observability": "Chemical/contrast confirmation",
+      "behavioural_relevance": "Component migration, adhesion and conduction",
+      "sources": [
+        "S5",
+        "S6",
+        "S13"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "C03",
+      "group": "Chemical and crystallographic features",
+      "name": "Graphite crystal orientation and texture",
+      "proposed_annotation_or_measurement": "XRD/Raman/TEM or suitable diffraction mapping",
+      "observability": "Structural measurement",
+      "behavioural_relevance": "Particle outline does not reveal basal/edge planes",
+      "sources": [
+        "S2",
+        "S11"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "C04",
+      "group": "Chemical and crystallographic features",
+      "name": "Graphitic disorder and grain structure",
+      "proposed_annotation_or_measurement": "Raman/XRD/TEM; crystallite size, defects and stacking",
+      "observability": "Structural measurement",
+      "behavioural_relevance": "Surface reactivity and transport/mechanics",
+      "sources": [
+        "S11"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "C05",
+      "group": "Chemical and crystallographic features",
+      "name": "Elemental contamination and deposits",
+      "proposed_annotation_or_measurement": "EDS/WDS/ToF-SIMS/XPS with chemistry-specific standards",
+      "observability": "Chemical confirmation",
+      "behavioural_relevance": "Parasitic chemistry or conductive inclusions",
+      "sources": [
+        "S7"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "C06",
+      "group": "Chemical and crystallographic features",
+      "name": "Surface oxide/coating chemistry and thickness",
+      "proposed_annotation_or_measurement": "XPS/TEM/EELS plus appropriate spatial resolution",
+      "observability": "Chemical + structural measurement",
+      "behavioural_relevance": "Changes reactivity, contact and first-cycle behaviour",
+      "sources": [
+        "S3",
+        "S11"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "C07",
+      "group": "Chemical and crystallographic features",
+      "name": "Binder chemistry and mechanical state",
+      "proposed_annotation_or_measurement": "Spectroscopy/thermal/mechanical characterization",
+      "observability": "Supporting measurement",
+      "behavioural_relevance": "Chemistry, crosslinking and stiffness affect adhesion",
+      "sources": [
+        "S5",
+        "S13"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "C08",
+      "group": "Chemical and crystallographic features",
+      "name": "Residual moisture/solvent and surface condition",
+      "proposed_annotation_or_measurement": "Moisture, thermal or spectroscopy measurements",
+      "observability": "Supporting measurement",
+      "behavioural_relevance": "Potential processing/first-cycle effects; dry SEM cannot quantify",
+      "sources": [
+        "S5",
+        "S8"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "C09",
+      "group": "Chemical and crystallographic features",
+      "name": "Wetting affinity and contact angle",
+      "proposed_annotation_or_measurement": "Controlled surface/wetting measurements",
+      "observability": "Supporting measurement",
+      "behavioural_relevance": "Dry pore geometry alone does not determine filling",
+      "sources": [
+        "S8"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "C10",
+      "group": "Chemical and crystallographic features",
+      "name": "SEI, plated lithium and lithiation state",
+      "proposed_annotation_or_measurement": "Appropriate air-free/operando chemistry and electrochemistry",
+      "observability": "Future cycled/formed samples only",
+      "behavioural_relevance": "Do not assign these states to the supplied unused electrodes",
+      "sources": [
+        "S1",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "T01",
+      "group": "Three-dimensional and functional targets",
+      "name": "Open/closed pore fractions and connectivity",
+      "proposed_annotation_or_measurement": "Tomography or serial sections; open-to-which-boundary specified",
+      "observability": "3D",
+      "behavioural_relevance": "A pore isolated in one section may connect out of plane",
+      "sources": [
+        "S4"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "T02",
+      "group": "Three-dimensional and functional targets",
+      "name": "Pore bodies, throats and constrictivity",
+      "proposed_annotation_or_measurement": "3D network and resolved minimum channels",
+      "observability": "3D",
+      "behavioural_relevance": "Captures bottlenecks missed by bulk porosity",
+      "sources": [
+        "S1",
+        "S4"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "T03",
+      "group": "Three-dimensional and functional targets",
+      "name": "Transport tortuosity tensor",
+      "proposed_annotation_or_measurement": "3D transport simulation or appropriate experiments",
+      "observability": "3D + physical model/test",
+      "behavioural_relevance": "2D path length and transport tortuosity differ",
+      "sources": [
+        "S4"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "T04",
+      "group": "Three-dimensional and functional targets",
+      "name": "Accessible surface and contact areas",
+      "proposed_annotation_or_measurement": "3D phase geometry plus accessibility definition",
+      "observability": "3D + chemistry",
+      "behavioural_relevance": "Geometric area is not automatically electrochemically active area",
+      "sources": [
+        "S4"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "T05",
+      "group": "Three-dimensional and functional targets",
+      "name": "Electronic percolation and contact resistance",
+      "proposed_annotation_or_measurement": "3D contact/CBD network with electrical validation",
+      "observability": "3D + functional measurement",
+      "behavioural_relevance": "Visible touching alone does not establish electrical continuity",
+      "sources": [
+        "S6",
+        "S9"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "T06",
+      "group": "Three-dimensional and functional targets",
+      "name": "Electrolyte filling, trapped gas and accessible volume",
+      "proposed_annotation_or_measurement": "Time-resolved wetting imaging or validated simulation",
+      "observability": "Dynamic/functional measurement",
+      "behavioural_relevance": "Cannot identify gas pockets from a dry pore mask",
+      "sources": [
+        "S8"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "T07",
+      "group": "Three-dimensional and functional targets",
+      "name": "Local expansion, residual strain and stress",
+      "proposed_annotation_or_measurement": "Registered states with DIC/DVC; constitutive model for stress",
+      "observability": "Dynamic + mechanical measurement",
+      "behavioural_relevance": "Fresh image supplies baseline geometry, not stress values",
+      "sources": [
+        "S2",
+        "S3"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "T08",
+      "group": "Three-dimensional and functional targets",
+      "name": "Adhesion and cohesive strength",
+      "proposed_annotation_or_measurement": "Peel, indentation or other suitable mechanical tests",
+      "observability": "Functional measurement",
+      "behavioural_relevance": "A gap is not a quantitative strength measurement",
+      "sources": [
+        "S5",
+        "S13"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "T09",
+      "group": "Three-dimensional and functional targets",
+      "name": "Ionic/electronic/thermal effective properties",
+      "proposed_annotation_or_measurement": "Validated transport or thermal model and experiments",
+      "observability": "Functional measurement",
+      "behavioural_relevance": "Material constants and geometry both required",
+      "sources": [
+        "S1",
+        "S4"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "T10",
+      "group": "Three-dimensional and functional targets",
+      "name": "Reaction/current hotspots and plating susceptibility",
+      "proposed_annotation_or_measurement": "Microstructure-resolved model and electrochemical validation",
+      "observability": "Modelled/experimental target",
+      "behavioural_relevance": "No numerical defect or plating probability from morphology alone",
+      "sources": [
+        "S1",
+        "S3"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "Q01",
+      "group": "Preparation and acquisition controls",
+      "name": "Curtaining and milling streaks",
+      "proposed_annotation_or_measurement": "Directional artifact masks",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Can imitate pore, crack or texture alignment",
+      "sources": [
+        "S14",
+        "S15"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "Q02",
+      "group": "Preparation and acquisition controls",
+      "name": "Redeposition, smearing and surface veils",
+      "proposed_annotation_or_measurement": "Obscured/coated-region masks; cause tied to preparation evidence",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Can fill or conceal gaps",
+      "sources": [
+        "S14",
+        "S15"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "Q03",
+      "group": "Preparation and acquisition controls",
+      "name": "Protective cap, embedding material and exterior",
+      "proposed_annotation_or_measurement": "Separate non-electrode masks",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Exclude from phase/porosity statistics",
+      "sources": [
+        "S12",
+        "S14"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "Q04",
+      "group": "Preparation and acquisition controls",
+      "name": "Section fracture, preparation debris and mechanical pull-out",
+      "proposed_annotation_or_measurement": "Artifact candidates; mechanical pull-out requires mechanical-preparation history",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Do not teach preparation damage as manufacturing failure",
+      "sources": [
+        "S14",
+        "S15"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "Q05",
+      "group": "Preparation and acquisition controls",
+      "name": "Charging and detector-dependent contrast",
+      "proposed_annotation_or_measurement": "Brightness/contrast anomalies and cross-detector checks",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Can masquerade as material phases",
+      "sources": [
+        "S6",
+        "S15"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "Q06",
+      "group": "Preparation and acquisition controls",
+      "name": "Pore shadow and subsurface show-through",
+      "proposed_annotation_or_measurement": "Ambiguous boundary/void regions",
+      "observability": "2D-conditional",
+      "behavioural_relevance": "Biases apparent pore shape and connectivity",
+      "sources": [
+        "S6",
+        "S15"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "Q07",
+      "group": "Preparation and acquisition controls",
+      "name": "Drift, blur, scan defects and stitching seams",
+      "proposed_annotation_or_measurement": "Quality masks and registration checks",
+      "observability": "2D",
+      "behavioural_relevance": "Corrupts shapes and multi-detector alignment",
+      "sources": [
+        "S15"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "Q08",
+      "group": "Preparation and acquisition controls",
+      "name": "Beam damage and altered surface rims",
+      "proposed_annotation_or_measurement": "Suspected region; repeated-dose/chemical confirmation",
+      "observability": "Supporting measurement",
+      "behavioural_relevance": "Not reliably diagnosed from one ordinary SEM image",
+      "sources": [
+        "S6"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "Q09",
+      "group": "Preparation and acquisition controls",
+      "name": "Clipping, saturation and unresolved fine features",
+      "proposed_annotation_or_measurement": "Invalid/uncertain masks; explicit minimum feature scale",
+      "observability": "2D",
+      "behavioural_relevance": "Pixel pitch is not instrument resolution",
+      "sources": [
+        "S6",
+        "S12"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    },
+    {
+      "id": "Q10",
+      "group": "Preparation and acquisition controls",
+      "name": "Frame-edge truncation and section bias",
+      "proposed_annotation_or_measurement": "Partial-object flags, fixed window rules and orientation metadata",
+      "observability": "2D",
+      "behavioural_relevance": "Avoid biased size distributions and false particle isolation",
+      "sources": [
+        "S2",
+        "S4"
+      ],
+      "status": "proposed_catalogue_entry_not_yet_annotated",
+      "value": null,
+      "evidence_note": "Sources support the mechanism or measurement family; this individual descriptor is not a validated failure predictor for Polaron."
+    }
+  ],
+  "sources": {
+    "S1": {
+      "title": "Multiscale dynamics of charging and plating in graphite electrodes coupling operando microscopy and phase-field modelling",
+      "year": 2023,
+      "url": "https://www.nature.com/articles/s41467-023-40574-6",
+      "scope": "Graphite: particle geometry, pore bottlenecks, heterogeneous reaction and plating; operando measurements plus modelling."
+    },
+    "S2": {
+      "title": "Quantifying microstructural dynamics and electrochemical activity of graphite and silicon-graphite lithium ion battery anodes",
+      "year": 2016,
+      "url": "https://www.nature.com/articles/ncomms12909",
+      "scope": "Graphite/Si-graphite: geometry, anisotropic transport and evolving porosity/strain, measured by tomography."
+    },
+    "S3": {
+      "title": "Unravelling electro-chemo-mechanical processes in graphite/silicon composites for designing nanoporous and microstructured battery electrodes",
+      "year": 2025,
+      "url": "https://www.nature.com/articles/s41565-025-02027-7",
+      "scope": "Si-graphite: internal porous architecture, graphite enclosure, CBD evolution, strain and current redistribution. Conditional relevance until Si is confirmed."
+    },
+    "S4": {
+      "title": "The electrode tortuosity factor: why the conventional tortuosity factor is not well suited for quantifying transport in porous Li-ion battery electrodes and what to use instead",
+      "year": 2020,
+      "url": "https://www.nature.com/articles/s41524-020-00386-4",
+      "scope": "Transport modelling: geometric paths alone do not establish transport tortuosity; dead-end pores can remain electrochemically useful."
+    },
+    "S5": {
+      "title": "Investigation of film solidification and binder migration during drying of Li-Ion battery anodes",
+      "year": 2016,
+      "url": "https://doi.org/10.1016/j.jpowsour.2016.04.018",
+      "scope": "Manufacturing: drying, binder redistribution and adhesion. Morphology alone cannot identify binder."
+    },
+    "S6": {
+      "title": "New method for binder and carbon black detection at nanometer scale in carbon electrodes for lithium ion batteries",
+      "year": 2017,
+      "url": "https://publikationen.bibliothek.kit.edu/1000073130/157978186",
+      "scope": "Graphite/PVDF/carbon black: calibrated energy-selective BSE is needed to distinguish overlapping carbonaceous domains; normal BSE/InLens is insufficient by itself."
+    },
+    "S7": {
+      "title": "Effect of electrode manufacturing defects on electrochemical performance of lithium-ion batteries: Cognizance of the battery failure sources",
+      "year": 2016,
+      "url": "https://doi.org/10.1016/j.jpowsour.2016.02.007",
+      "scope": "Manufacturing defects intentionally introduced in NMC cathodes. Transfer evidence for anode feature screening, not validated anode severity thresholds."
+    },
+    "S8": {
+      "title": "Investigation of the Influence of Electrode Surface Structures on Wettability after Electrolyte Filling Based on Experiments and a Lattice Boltzmann Simulation",
+      "year": 2023,
+      "url": "https://doi.org/10.3390/en16155640",
+      "scope": "Surface geometry, pore apertures, filling and gas entrapment; wetting needs fluid/surface information beyond dry SEM."
+    },
+    "S9": {
+      "title": "Interfacially Induced Cascading Failure in Graphite-Silicon Composite Anodes",
+      "year": 2019,
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6364491/",
+      "scope": "Cycled Si-graphite: interparticle cracking and electronic isolation. Explains possible future failure, not existing cycling damage in fresh samples."
+    },
+    "S10": {
+      "title": "Deep learning-based segmentation of lithium-ion battery microstructures enhanced by artificially generated electrodes",
+      "year": 2021,
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8551326/",
+      "scope": "Multiphase graphite-silicon imaging/segmentation; method and phase-identification precedent, using X-ray imaging rather than these SEM exports."
+    },
+    "S11": {
+      "title": "Influence of graphite edge crystallographic orientation on the first lithium intercalation in Li-ion battery",
+      "year": 2015,
+      "url": "https://doi.org/10.1016/j.carbon.2015.05.001",
+      "scope": "Edge crystallography, SEI and exfoliation/co-intercalation response. Crystal-edge identity requires structural characterization, not particle outline."
+    },
+    "S12": {
+      "title": "Methods\u2014Kintsugi Imaging of Battery Electrodes: Distinguishing Pores from the Carbon Binder Domain using Pt Deposition",
+      "year": 2022,
+      "url": "https://doi.org/10.1149/1945-7111/ac7a68",
+      "scope": "Contrast-engineered electrode SEM distinguishes pore and carbon-binder domain; preparation changes the contrast, so labels do not transfer blindly."
+    },
+    "S13": {
+      "title": "Critical electrode properties and drying conditions causing component segregation in graphitic anodes for lithium-ion batteries",
+      "year": 2018,
+      "url": "https://doi.org/10.1016/j.est.2018.06.009",
+      "scope": "Graphite anode processing, component segregation and electrode properties."
+    },
+    "S14": {
+      "title": "Lift-Out Specimen Preparation and Multiscale Correlative Investigation of Li-Ion Battery Electrodes Using Focused Ion Beam-Secondary Ion Mass Spectrometry Platforms",
+      "year": 2024,
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11503607/",
+      "scope": "Graphite/Si-C anode preparation: curtain effects and redeposition, including apparent Cu introduced by ion polishing."
+    },
+    "S15": {
+      "title": "Optimization of FIB\u2013SEM Tomography and Reconstruction for Soft, Porous, and Poorly Conducting Materials",
+      "year": 2020,
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32438937/",
+      "scope": "Primary FIB methodology on porous polymer films, not battery electrodes: curtaining, charging, shadowing, redeposition and subsurface signal; methodological transfer evidence."
+    }
+  },
+  "annotation_contract": {
+    "entity_classes": [
+      "particle_contrast_A",
+      "particle_contrast_B",
+      "unresolved_fine_matrix",
+      "void_like_region",
+      "fissure_candidate",
+      "interfacial_gap",
+      "agglomerate_candidate",
+      "unknown_inclusion",
+      "collector_if_verified",
+      "exterior_or_embedding",
+      "artifact",
+      "unknown_ignore"
+    ],
+    "attributes": [
+      "batch_id",
+      "field_stem",
+      "detector",
+      "source_hash",
+      "original_pixel_coordinates",
+      "geometry",
+      "phase_identity_evidence",
+      "observed_vs_inferred",
+      "confidence",
+      "preparation_ambiguity",
+      "resolution_limit",
+      "frame_truncated",
+      "reviewer",
+      "review_status"
+    ],
+    "relations": [
+      "touches",
+      "adjacent_to",
+      "inside",
+      "separated_by_gap",
+      "member_of_cluster",
+      "near_collector",
+      "near_surface"
+    ],
+    "policy": "Store object masks and relationships; derive dimensions/statistics. Unknown is ignored, not healthy background. No universal defect thresholds."
+  }
+}
