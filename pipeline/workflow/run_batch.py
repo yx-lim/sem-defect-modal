@@ -25,6 +25,8 @@ PY = str(BASE / '.venv' / 'bin' / 'python')
 MAX_ACTIVE = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 led = Ledger(BASE / 'ledger_drive' / 'ledger.json')
 lock = threading.Lock()
+UP = cf.ThreadPoolExecutor(3)
+uploads = []
 
 
 def sh(*a, **kw):
@@ -44,7 +46,7 @@ def upload(iid, vd):
         raise RuntimeError('package: ' + r.stderr[-500:])
     rd = f'{DEST}/{iid}/v001'
     for a in ([str(vd), rd, '--exclude', '.scratch/**'], [str(pkg), rd], [str(pkg) + '.sha256', rd]):
-        r = sh(RCLONE, 'copy', '--immutable', *a)
+        r = sh(RCLONE, 'copy', '--immutable', '--transfers', '8', *a)
         if r.returncode:
             raise RuntimeError('upload: ' + r.stderr[-500:])
     r = sh(RCLONE, 'check', '--one-way', '--exclude', '.scratch/**', str(vd), rd)
@@ -68,11 +70,20 @@ def run_one(job, ref):
     if r.returncode or not json.loads((vd / 'validate.json').read_text())['ok']:
         upd(iid, 'failed_retryable', error=f'drive_image exit {r.returncode}; see {log}')
         return iid, 'failed'
-    out = upload(iid, vd)
-    usd = sum(json.loads((vd / '.verify' / s / 'summary.json').read_text())['usd'] for s in ('pass1', 'pass2'))
-    upd(iid, 'qc_pending', outputs=dict(out, api_usd=round(usd, 3), wall_s=round(time.time() - t0)),
-        note='automatic tile+crop+policy verifier review; awaiting human QC')
-    return iid, 'ok'
+    wall = round(time.time() - t0)
+
+    def finish():
+        try:
+            out = upload(iid, vd)
+            usd = sum(json.loads((vd / '.verify' / s / 'summary.json').read_text())['usd'] for s in ('pass1', 'pass2'))
+            upd(iid, 'qc_pending', outputs=dict(out, api_usd=round(usd, 3), wall_s=wall),
+                note='automatic tile+crop+policy verifier review; awaiting human QC')
+            print((iid, 'ok'), flush=True)
+        except Exception as e:
+            upd(iid, 'failed_retryable', error=str(e)[-500:])
+            print((iid, f'upload failed: {e}'), flush=True)
+    uploads.append(UP.submit(finish))  # upload in the background so the next image can start processing
+    return iid, 'processed'
 
 
 def main():
@@ -101,6 +112,8 @@ def main():
     with cf.ThreadPoolExecutor(MAX_ACTIVE) as ex:
         for r in ex.map(stem_chain, sorted(stems)):
             print(r, flush=True)
+    cf.wait(uploads)
+    UP.shutdown()
 
 
 if __name__ == '__main__':

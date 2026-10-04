@@ -16,6 +16,7 @@ REQUIRED = ['annotation.json', 'feature_presence.csv', 'measurements.csv', 'mask
             'masks/semantic_mask.png', 'masks/qc_flags.png', 'masks/class_map.json', 'vectors_coco.json',
             'overview.png', 'dashboard.png', 'charts.png', 'qa/index.json', 'layers.html', 'source_preview.jpg'] + \
            [f'overlays/{n}.png' for n in LAYERS]
+PIPELINE_CLASSES = {'particle_contrast_A', 'particle_contrast_B', 'unknown_inclusion', 'particle_unclassified_contrast'}  # pipeline's own neutral classes ('inclusion' contains 'sio')
 FORBIDDEN_CLASS_WORDS = ('silicon', 'graphite', 'binder', 'carbon_black', 'sio', 'copper', 'background', 'healthy')
 
 
@@ -85,7 +86,7 @@ def validate_stage(d, check_sums=True, final_files=True):
     if cm.get('ignore_value') != 255:
         err.append('class_map ignore_value must be 255')
     for i in ann['instances']:
-        if any(w in i['class'].lower() for w in FORBIDDEN_CLASS_WORDS):
+        if i['class'] not in PIPELINE_CLASSES and any(w in i['class'].lower() for w in FORBIDDEN_CLASS_WORDS):
             err.append(f"instance {i['id']}: forbidden class {i['class']}")
         if not i.get('polygon_xy'):
             warn.append(f"instance {i['id']}: empty polygon")
