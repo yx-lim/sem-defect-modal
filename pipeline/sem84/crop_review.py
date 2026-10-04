@@ -18,6 +18,8 @@ from PIL import Image, ImageDraw
 from .cli import DARK_CLASSES, PARTICLE_CLASSES, load_gray, now
 from .render import font
 
+RELABEL_OK = PARTICLE_CLASSES - {'unknown_inclusion'}  # validate.py forbids 'sio' substrings, which 'inclusion' contains
+
 PANEL = 384
 MIN_WIN, MAX_WIN = 192, 768
 MAX_CROPS = 25
@@ -160,7 +162,7 @@ Objects in this crop (id, type, class, area_px, solidity, tags):
 Rules (non-negotiable):
 - Draft labelling, not ground truth. Prefer removing/ignoring over guessing. If you cannot judge an object from this crop, answer "unsure".
 - Never assert chemistry (Si, SiOx, graphite, binder, carbon black, copper, contamination, oxidation). Dark != pore. Touching != electrical contact. 2D cannot prove 3D connectivity/enclosure.
-- Particle masks: remove masks that merge several particles, leak over matrix/background, cover textured fine matrix rather than a discrete particle, or are not a particle. Relabel classes: particle_contrast_A, particle_contrast_B (BSE only), unknown_inclusion, particle_unclassified_contrast (mixed/intermediate contrast).
+- Particle masks: remove masks that merge several particles, leak over matrix/background, cover textured fine matrix rather than a discrete particle, or are not a particle. Relabel classes: particle_contrast_A, particle_contrast_B (BSE only), particle_unclassified_contrast (mixed/intermediate contrast).
 - Dark regions: keep fissure_candidate ONLY for a thin slit clearly surrounded by one particle at native resolution; a dark line along a particle boundary is interfacial_gap; a dark region the host mask leaked over, an edge shadow, or anything unclear is unresolved_dark; open dark space is void_like_region.
 - Artefacts: mark curtaining (vertical streaks), charging, smearing, scratches, redeposition, scan-line jumps, seams as regions.
 - Missed particles: only if a clear discrete particle has no outline; give its centre in panel pixels of the LEFT panel.
@@ -282,7 +284,7 @@ def to_review(qdir, reviewer, out_path):
                 rv['remove_instances'].append({'id': oid, 'reason': why})
             elif t == 'inst' and verdict == 'ignore':
                 rv['remove_instances'].append({'id': oid, 'reason': 'ambiguous, left unlabelled: ' + why})
-            elif t == 'inst' and verdict == 'relabel' and nc in PARTICLE_CLASSES and (is_bse or nc in ('unknown_inclusion', 'particle_unclassified_contrast')):
+            elif t == 'inst' and verdict == 'relabel' and nc in RELABEL_OK and (is_bse or nc == 'particle_unclassified_contrast'):
                 rv['relabel_instances'].append({'id': oid, 'class': nc, 'reason': why})
             elif t == 'dark' and verdict in ('reclassify_dark', 'relabel') and nc in DARK_CLASSES:
                 rv['reclassify_dark'].append({'id': oid, 'class': nc, 'reason': why})
